@@ -1,0 +1,25 @@
+name: Auto Pull & Restart Spring
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, win-dev]
+    steps:
+      - name: Pull latest code
+        shell: pwsh
+        run: |
+          cd C:\uop
+          git pull
+
+      - name: Kill old Spring window
+        shell: pwsh
+        run: |
+          Get-Process powershell | Where-Object { $_.MainWindowTitle -eq "SpringApp" } | Stop-Process -Force
+
+      - name: Run new Spring with mvn spring-boot:run
+        shell: pwsh
+        run: |
+          cd C:\uop
+          Start-Process powershell -ArgumentList "-NoExit", "-WindowStyle Normal", "-Command", "`$Host.UI.RawUI.WindowTitle = 'SpringApp'; mvn spring-boot:run"
