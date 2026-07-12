@@ -8,20 +8,20 @@ jobs:
     runs-on: [self-hosted, win-dev]
     steps:
       - name: Pull latest code
-        shell:  powershell
+        shell:  C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
 
         run: |
           cd C:\uop
           git pull
 
       - name: Kill old Spring window
-        shell: powershell
+        shell:  C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
 
         run: |
           Get-Process powershell | Where-Object { $_.MainWindowTitle -eq "SpringApp" } | Stop-Process -Force
 
       - name: Run new Spring with mvn spring-boot:run
-        shell: powershell
+        shell: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
         run: |
           cd C:\uop
           Start-Process powershell -ArgumentList "-NoExit", "-WindowStyle Normal", "-Command", "`$Host.UI.RawUI.WindowTitle = 'SpringApp'; mvn spring-boot:run"
