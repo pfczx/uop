@@ -22,15 +22,32 @@ jobs:
       - name: Run Spring detached
         shell: powershell
         run: |
-          Start-Process powershell.exe `
+          $p = Start-Process powershell.exe `
             -ArgumentList "-NoExit", "-Command", "cd C:\uop; `$Host.UI.RawUI.WindowTitle='SpringApp'; mvn spring-boot:run" `
-            -WindowStyle Normal
+            -WindowStyle Normal `
+            -PassThru
+
+          while ($true) {
+            $port = Test-NetConnection localhost -Port 8080 -InformationLevel Quiet
+            $process = Get-Process -Id $p.Id -ErrorAction SilentlyContinue
+
+            if ($port) {
+              break
+            }
+
+            if (-not $process) {
+              exit 1
+            }
+
+            Start-Sleep -Seconds 5
+          }
 
           while ($true) {
             if (Test-NetConnection localhost -Port 8080 -InformationLevel Quiet) {
-              Start-Sleep -Seconds 5
+              Start-Sleep -Seconds 10
             }
             else {
               exit 0
             }
+          }
           }
