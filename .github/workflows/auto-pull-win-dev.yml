@@ -7,7 +7,7 @@ jobs:
   deploy:
     runs-on: [self-hosted, win-dev]
     steps:
-      - name: Pull latest code
+      - name: Pull code
         shell: powershell
 
         run: |
