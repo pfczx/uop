@@ -22,9 +22,15 @@ jobs:
       - name: Run Spring detached
         shell: powershell
         run: |
-           $p = Start-Process powershell.exe `
+          Start-Process powershell.exe `
             -ArgumentList "-NoExit", "-Command", "cd C:\uop; `$Host.UI.RawUI.WindowTitle='SpringApp'; mvn spring-boot:run" `
-            -WindowStyle Normal `
-            -PassThru
+            -WindowStyle Normal
 
-            Write-Host "Started Spring PID: $($p.Id)"
+          while ($true) {
+            if (Test-NetConnection localhost -Port 8080 -InformationLevel Quiet) {
+              Start-Sleep -Seconds 5
+            }
+            else {
+              exit 0
+            }
+          }
