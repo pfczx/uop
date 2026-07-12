@@ -19,9 +19,12 @@ jobs:
         shell: powershell
         run: |
           Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force
-
-      - name: Run Spring
+      - name: Run Spring detached
         shell: powershell
         run: |
-          cd C:\uop
-          mvn spring-boot:run
+           $p = Start-Process powershell.exe `
+            -ArgumentList "-NoExit", "-Command", "cd C:\uop; `$Host.UI.RawUI.WindowTitle='SpringApp'; mvn spring-boot:run" `
+            -WindowStyle Normal `
+            -PassThru
+
+            Write-Host "Started Spring PID: $($p.Id)"
