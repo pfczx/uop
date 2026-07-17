@@ -15,39 +15,25 @@ jobs:
           cd C:\uop
           git pull
 
-      - name: Kill old Spring
+      - name: Rebuild and restart containers
         shell: powershell
         run: |
-          Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force
-      - name: Run Spring detached
+          cd C:\uop 
+          docker compose down
+          docker compose up -d --build
+      - name: Wait for application
         shell: powershell
         run: |
-          $p = Start-Process powershell.exe `
-            -ArgumentList "-NoExit", "-Command", "cd C:\uop; `$Host.UI.RawUI.WindowTitle='SpringApp'; mvn spring-boot:run" `
-            -WindowStyle Normal `
-            -PassThru
+          $maxAttempts = 100 
+          for ($i = 0; $i -lt $maxAttempts; $i++) {
 
-          while ($true) {
-            $port = Test-NetConnection localhost -Port 8080 -InformationLevel Quiet
-            $process = Get-Process -Id $p.Id -ErrorAction SilentlyContinue
-
-            if ($port) {
-              break
-            }
-
-            if (-not $process) {
-              exit 1
-            }
-
-            Start-Sleep -Seconds 5
+          if (Test-NetConnection localhost -Port 8080 -InformationLevel Quiet) { 
+            Write-Host "Application is ready" 
+            exit 0 
           }
 
-          while ($true) {
-            if (Test-NetConnection localhost -Port 8080 -InformationLevel Quiet) {
-              Start-Sleep -Seconds 10
-            }
-            else {
-              exit 0
-            }
-          }
-         
+            Start-Sleep -Seconds 5 
+          } 
+          Write-Error "Application failed to start" 
+          docker compose logs 
+          exit 1
