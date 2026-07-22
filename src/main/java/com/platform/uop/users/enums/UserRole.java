@@ -1,6 +1,6 @@
 package com.platform.uop.users.enums;
 
-public enum UserRole{
+public enum UserRole {
   ADMIN,
   USER
 }

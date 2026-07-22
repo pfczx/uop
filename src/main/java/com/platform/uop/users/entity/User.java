@@ -26,27 +26,27 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class User {
 
-  
-    @Id
-    private UUID id;
-    
-    @Column(nullable = false, unique = true)
-    private String email;
+  @Id
+  private UUID id;
 
-    @Column(nullable = false)
-    private String passwordHash;
+  @Column(nullable = false, unique = true)
+  private String email;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserStatus status;
+  @Column(nullable = false)
+  private String passwordHash;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private UserRole role;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private UserStatus status;
 
-    @Column(nullable = false)
-    private Instant createdAt;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private UserRole role;
 
-    @Column(nullable = false)
-    private Instant updatedAt;
+  @Column(nullable = false)
+  private Instant createdAt;
+
+  @Column(nullable = false)
+  private Instant updatedAt;
+
 }

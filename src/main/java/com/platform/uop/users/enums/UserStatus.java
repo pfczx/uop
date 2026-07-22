@@ -1,7 +1,7 @@
 package com.platform.uop.users.enums;
 
-public enum UserStatus{
+public enum UserStatus {
   ACTIVE,
   INACTIVE,
   LOCKED
-} 
+}
