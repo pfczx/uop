@@ -49,4 +49,9 @@ public class User {
   @Column(nullable = false)
   private Instant updatedAt;
 
+  public void changeEmail(String newEmail) {
+    this.email = newEmail;
+    this.updatedAt = Instant.now();
+  }
+
 }

@@ -6,7 +6,7 @@ import java.util.UUID;
 import com.platform.uop.users.enums.UserRole;
 import com.platform.uop.users.enums.UserStatus;
 
-public record CreateUserResponse(
+public record UserResponse(
 
     UUID id,
 
