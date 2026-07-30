@@ -1,4 +1,4 @@
-package com.platform.uop.users.exeption;
+package com.platform.uop.users.exception;
 
 import java.util.UUID;
 

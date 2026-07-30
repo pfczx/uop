@@ -54,4 +54,14 @@ public class User {
     this.updatedAt = Instant.now();
   }
 
+  public void changePassword(String password) {
+    this.passwordHash = password;
+    this.updatedAt = Instant.now();
+  }
+
+  public void deactivateAccount() {
+    this.status = UserStatus.INACTIVE;
+    this.updatedAt = Instant.now();
+  }
+
 }

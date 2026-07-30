@@ -1,4 +1,4 @@
-package com.platform.uop.users.exeption;
+package com.platform.uop.users.exception;
 
 public class UserAlreadyExistsException extends RuntimeException {
 

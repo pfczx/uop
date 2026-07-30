@@ -3,16 +3,19 @@ package com.platform.uop.users.service;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.platform.uop.users.dto.CreateUserRequest;
+import com.platform.uop.users.dto.DeactivateAccountRequest;
 import com.platform.uop.users.dto.UpdateEmailRequest;
+import com.platform.uop.users.dto.UpdatePasswordRequest;
 import com.platform.uop.users.dto.UserResponse;
 import com.platform.uop.users.entity.User;
 import com.platform.uop.users.enums.UserRole;
 import com.platform.uop.users.enums.UserStatus;
-import com.platform.uop.users.exeption.UserAlreadyExistsException;
-import com.platform.uop.users.exeption.UserNotFoundException;
+import com.platform.uop.users.exception.UserAlreadyExistsException;
+import com.platform.uop.users.exception.UserNotFoundException;
 import com.platform.uop.users.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -22,9 +25,18 @@ import lombok.RequiredArgsConstructor;
 public class UserService {
 
   private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
+
+  private UserResponse toResponse(User user) {
+    return new UserResponse(
+        user.getId(),
+        user.getEmail(),
+        user.getRole(),
+        user.getStatus(),
+        user.getCreatedAt());
+  }
 
   public UserResponse create(CreateUserRequest request) {
-
     if (userRepository.existsByEmail(request.email())) {
       throw new UserAlreadyExistsException(request.email());
     }
@@ -32,7 +44,7 @@ public class UserService {
     User user = User.builder()
         .id(UUID.randomUUID())
         .email(request.email())
-        .passwordHash("TODO")
+        .passwordHash(passwordEncoder.encode(request.password()))
         .role(UserRole.USER)
         .status(UserStatus.ACTIVE)
         .createdAt(Instant.now())
@@ -41,17 +53,12 @@ public class UserService {
 
     User saved = userRepository.save(user);
 
-    return new UserResponse(
-        saved.getId(),
-        saved.getEmail(),
-        saved.getRole(),
-        saved.getStatus(),
-        saved.getCreatedAt());
+    return toResponse(saved);
   }
 
-  public UserResponse updateEmail(UpdateEmailRequest request) {
-    User user = userRepository.findById(request.id())
-        .orElseThrow(() -> new UserNotFoundException(request.id()));
+  public UserResponse updateEmail(UUID id, UpdateEmailRequest request) {
+    User user = userRepository.findById(id)
+        .orElseThrow(() -> new UserNotFoundException(id));
 
     if (userRepository.existsByEmail(request.newEmail())) {
       throw new UserAlreadyExistsException(request.newEmail());
@@ -60,11 +67,28 @@ public class UserService {
     user.changeEmail(request.newEmail());
     User saved = userRepository.save(user);
 
-    return new UserResponse(
-        saved.getId(),
-        saved.getEmail(),
-        saved.getRole(),
-        saved.getStatus(),
-        saved.getCreatedAt());
+    return toResponse(saved);
+  }
+
+  public UserResponse updatePassword(UUID id, UpdatePasswordRequest request) {
+    User user = userRepository.findById(id)
+        .orElseThrow(() -> new UserNotFoundException(id));
+
+    user.changePassword(passwordEncoder.encode(request.password()));
+    User saved = userRepository.save(user);
+
+    return toResponse(saved);
+
+  }
+
+  public UserResponse deactivateAccount(UUID id, DeactivateAccountRequest request) {
+    User user = userRepository.findById(id)
+        .orElseThrow(() -> new UserNotFoundException(id));
+
+    user.deactivateAccount();
+    User saved = userRepository.save(user);
+
+    return toResponse(saved);
+
   }
 }
