@@ -37,9 +37,13 @@ public class UserService {
   }
 
   public UserResponse create(CreateUserRequest request) {
-    if (userRepository.existsByEmail(request.email())) {
+    User exists = userRepository.findByEmail(request.email())
+        .orElse(null);
+
+    if (exists != null && exists.getStatus() == UserStatus.ACTIVE) {
       throw new UserAlreadyExistsException(request.email());
     }
+
 
     User user = User.builder()
         .id(UUID.randomUUID())

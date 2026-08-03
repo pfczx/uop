@@ -62,6 +62,7 @@ public class User {
   public void deactivateAccount() {
     this.status = UserStatus.INACTIVE;
     this.updatedAt = Instant.now();
+    this.email = "deleted_" + this.getId() + "@deleted.local";
   }
 
 }
