@@ -3,6 +3,7 @@ package com.platform.uop.users.service;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +45,6 @@ public class UserService {
       throw new UserAlreadyExistsException(request.email());
     }
 
-
     User user = User.builder()
         .id(UUID.randomUUID())
         .email(request.email())
@@ -74,11 +74,16 @@ public class UserService {
     return toResponse(saved);
   }
 
+  // TODO: move pass change to \auth
   public UserResponse updatePassword(UUID id, UpdatePasswordRequest request) {
     User user = userRepository.findById(id)
         .orElseThrow(() -> new UserNotFoundException(id));
 
-    user.changePassword(passwordEncoder.encode(request.password()));
+    if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
+      throw new BadCredentialsException("Wrong password");
+    }
+
+    user.changePassword(passwordEncoder.encode(request.Newpassword()));
     User saved = userRepository.save(user);
 
     return toResponse(saved);

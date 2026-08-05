@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.platform.uop.users.entity.User;
+import com.platform.uop.users.enums.UserStatus;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class UserPrincipal implements UserDetails {
   }
 
   @Override
-  public @Nullable String getPassword() {
+  public String getPassword() {
     return this.user.getPasswordHash();
   }
 
@@ -35,4 +36,23 @@ public class UserPrincipal implements UserDetails {
     return this.user.getEmail();
   }
 
+  @Override
+  public boolean isEnabled() {
+    return user.getStatus() == UserStatus.ACTIVE;
+  }
+
+  @Override
+  public boolean isAccountNonExpired() {
+    return true;
+  }
+
+  @Override
+  public boolean isAccountNonLocked() {
+    return user.getStatus() != UserStatus.LOCKED;
+  }
+
+  @Override
+  public boolean isCredentialsNonExpired() {
+    return true;
+  }
 }
