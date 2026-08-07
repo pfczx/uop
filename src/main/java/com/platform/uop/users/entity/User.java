@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User { 
+public class User {
 
   @Id
   private UUID id;
@@ -56,6 +56,26 @@ public class User {
 
   public void changePassword(String password) {
     this.passwordHash = password;
+    this.updatedAt = Instant.now();
+  }
+
+  public void lock() {
+    this.status = UserStatus.LOCKED;
+    this.updatedAt = Instant.now();
+  }
+
+  public void unlock() {
+    this.status = UserStatus.ACTIVE;
+    this.updatedAt = Instant.now();
+  }
+
+  public void activate() {
+    this.status = UserStatus.ACTIVE;
+    this.updatedAt = Instant.now();
+  }
+
+  public void changeRole(UserRole role) {
+    this.role = role;
     this.updatedAt = Instant.now();
   }
 
