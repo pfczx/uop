@@ -18,7 +18,8 @@ jobs:
       - name: Rebuild and restart containers
         shell: powershell
         run: |
-          cd C:\uop 
+          cd C:\uop
+          $env:SPRING_PROFILES_ACTIVE="dev"
           docker compose down
           docker compose up -d --build
       - name: Wait for application
