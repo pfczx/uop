@@ -3,6 +3,7 @@ package com.platform.uop.users.bootstrap;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -21,16 +22,19 @@ public class AdminSeeder implements CommandLineRunner {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
 
-  private final String email = "admin@admin.com";
-  private final String password = "admin";
+  @Value("${app.admin.email}")
+  private String adminEmail;
+
+  @Value("${app.admin.password}")
+  private String adminPassword;
 
   @Override
   public void run(String... args) throws Exception {
     if (!userRepository.existsByEmail("admin@admin.com")) {
       User user = User.builder()
           .id(UUID.randomUUID())
-          .email(email)
-          .passwordHash(passwordEncoder.encode(password))
+          .email(adminEmail)
+          .passwordHash(passwordEncoder.encode(adminPassword))
           .role(UserRole.ADMIN)
           .status(UserStatus.ACTIVE)
           .createdAt(Instant.now())

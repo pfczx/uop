@@ -107,10 +107,6 @@ public class AdminService {
     User user = findUser(id);
     validateNotAdmin(user);
 
-    if (request.role() == UserRole.ADMIN) {
-      throw new CannotModifyAdminException();
-    }
-
     user.changeRole(request.role());
 
     User saved = userRepository.save(user);
