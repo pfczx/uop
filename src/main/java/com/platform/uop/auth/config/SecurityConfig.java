@@ -30,6 +30,7 @@ public class SecurityConfig {
         .securityContext(context -> context.requireExplicitSave(false))
         .httpBasic(httpBasic -> httpBasic.disable())
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/setup/**").permitAll()
             .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated());
