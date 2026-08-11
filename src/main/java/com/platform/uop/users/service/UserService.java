@@ -41,7 +41,7 @@ public class UserService {
     User exists = userRepository.findByEmail(request.email())
         .orElse(null);
 
-    if (exists != null && exists.getStatus() == UserStatus.ACTIVE) {
+    if (exists != null) {
       throw new UserAlreadyExistsException(request.email());
     }
 
@@ -64,7 +64,7 @@ public class UserService {
     User user = userRepository.findById(id)
         .orElseThrow(() -> new UserNotFoundException(id));
 
-    if (userRepository.existsByEmail(request.newEmail())) {
+    if (userRepository.existsByEmailAndIdNot(request.newEmail(), id)) {
       throw new UserAlreadyExistsException(request.newEmail());
     }
 

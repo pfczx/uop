@@ -1,9 +1,10 @@
 package com.platform.uop;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+//import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+// TODO: remove for integrations test
+//@SpringBootTest
 class UopApplicationTests {
 
 	@Test

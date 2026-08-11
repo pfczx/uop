@@ -16,6 +16,7 @@ import com.platform.uop.admin.dto.LockUserRequest;
 import com.platform.uop.admin.dto.UnlockUserRequest;
 import com.platform.uop.admin.exception.AdminUserNotFoundException;
 import com.platform.uop.admin.exception.CannotModifyAdminException;
+import com.platform.uop.admin.exception.UserAlreadyDeactivatedException;
 import com.platform.uop.admin.exception.UserAlreadyLockedException;
 import com.platform.uop.admin.exception.UserNotLockedException;
 import com.platform.uop.users.dto.DeactivateAccountRequest;
@@ -116,6 +117,10 @@ public class AdminService {
   public AdminUserResponse deactivateAccount(UUID id, DeactivateAccountRequest request) {
     User user = findUser(id);
     validateNotAdmin(user);
+
+    if (user.getStatus() == UserStatus.INACTIVE) {
+      throw new UserAlreadyDeactivatedException(id);
+    }
 
     user.deactivateAccount();
     User saved = userRepository.save(user);
