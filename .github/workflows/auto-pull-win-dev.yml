@@ -20,7 +20,7 @@ jobs:
         run: |
           cd C:\uop
           $env:SPRING_PROFILES_ACTIVE="dev"
-          docker compose down
+          docker compose down -v
           docker compose up -d --build
       - name: Wait for application
         shell: powershell
