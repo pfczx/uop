@@ -20,31 +20,32 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AdminSeeder implements CommandLineRunner {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AdminBootstrapProperties properties;
+  private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final AdminBootstrapProperties properties;
 
-    @Override
-    public void run(String... args) {
+  @Override
+  public void run(String... args) {
 
-        if (!properties.enabled()) {
-            return;
-        }
-
-        if (userRepository.existsByRole(UserRole.ADMIN)) {
-            return;
-        }
-
-        User user = User.builder()
-            .email(properties.email())
-            .passwordHash(
-                passwordEncoder.encode(properties.password()))
-            .role(UserRole.ADMIN)
-            .status(UserStatus.ACTIVE)
-            .createdAt(Instant.now())
-            .updatedAt(Instant.now())
-            .build();
-
-        userRepository.save(user);
+    if (!properties.enabled()) {
+      return;
     }
+
+    if (userRepository.existsByRole(UserRole.ADMIN)) {
+      return;
+    }
+
+    User user = User.builder()
+        .id(UUID.randomUUID())
+        .email(properties.email())
+        .passwordHash(
+            passwordEncoder.encode(properties.password()))
+        .role(UserRole.ADMIN)
+        .status(UserStatus.ACTIVE)
+        .createdAt(Instant.now())
+        .updatedAt(Instant.now())
+        .build();
+
+    userRepository.save(user);
+  }
 }
