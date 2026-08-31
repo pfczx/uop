@@ -35,7 +35,7 @@
 
     <dependency>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-webmvc</artifactId>
+        <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
 
     <dependency>
@@ -71,14 +71,24 @@
         <artifactId>lombok</artifactId>
         <scope>provided</scope>
     </dependency>
-
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <scope>test</scope>
+    </dependency>
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-test</artifactId>
         <scope>test</scope>
-    </dependency>
+      </dependency>
 
       <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-webmvc-test</artifactId>
+          <scope>test</scope>
+        </dependency>
+
+        <dependency> 
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-security</artifactId>
       </dependency>
@@ -89,6 +99,17 @@
         <scope>test</scope>
       </dependency>
 
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-postgresql</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
 </dependencies>
 	<build>
     <plugins>
@@ -96,7 +117,21 @@
         <plugin>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
-        </plugin>
+          </plugin>
+
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.5.6</version>
+          <executions>
+              <execution>
+                  <goals>
+                      <goal>integration-test</goal>
+                      <goal>verify</goal>
+                  </goals>
+              </execution>
+          </executions>
+      </plugin>
 
     </plugins>
 </build>

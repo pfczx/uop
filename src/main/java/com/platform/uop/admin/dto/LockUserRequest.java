@@ -7,4 +7,8 @@ public record LockUserRequest(
     @NotBlank String reason
 
 ) {
-}
+
+  public LockUserRequest() {
+    this("blank");
+  }
+} 
