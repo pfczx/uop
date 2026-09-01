@@ -19,7 +19,13 @@ jobs:
         shell: powershell
         run: |
           cd C:\uop
-          .\mvnw.cmd clean verify
+
+          docker compose -f docker-compose.test.yml run --rm tests
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Tests failed"
+            exit $LASTEXITCODE
+          }
 
       - name: Rebuild and restart containers
         shell: powershell
