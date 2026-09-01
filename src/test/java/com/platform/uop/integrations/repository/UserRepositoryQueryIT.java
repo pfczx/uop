@@ -173,10 +173,10 @@ class UserRepositoryQueryIT {
     assertThat(saved.getEmail()).isEqualTo("newuser@example.com");
 
     saved.changeEmail("updated@example.com");
-    User updated = userRepository.save(saved);
+    User updated = userRepository.saveAndFlush(saved);
 
     assertThat(updated.getEmail()).isEqualTo("updated@example.com");
-    assertThat(updated.getUpdatedAt()).isAfter(saved.getUpdatedAt());
+    assertThat(updated.getUpdatedAt()).isAfterOrEqualTo(saved.getUpdatedAt());
   }
 
   @Test

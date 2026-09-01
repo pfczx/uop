@@ -5,7 +5,7 @@ import java.util.UUID;
 public class UserAlreadyDeactivatedException extends RuntimeException {
 
   public UserAlreadyDeactivatedException(UUID id) {
-    super("User `%s`  already deactivated".formatted(id));
+    super("User with id %s is already deactivated".formatted(id));
   }
 
 }

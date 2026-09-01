@@ -31,6 +31,9 @@ import com.platform.uop.users.enums.UserRole;
 import com.platform.uop.users.enums.UserStatus;
 import com.platform.uop.users.repository.UserRepository;
 
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.web.servlet.MvcResult;
+
 import jakarta.servlet.http.Cookie;
 
 @Testcontainers
@@ -66,11 +69,12 @@ class AuthControllerIT {
   private PasswordEncoder passwordEncoder;
 
   private UUID userId;
-  private String sessionCookie;
+  private MockHttpSession session;
 
   @BeforeEach
   void setUp() {
     userRepository.deleteAll();
+    session = new MockHttpSession();
 
     User user = User.builder()
         .id(UUID.randomUUID())
@@ -86,23 +90,14 @@ class AuthControllerIT {
     userId = saved.getId();
   }
 
-  private String loginAndGetSessionCookie(String email, String password) throws Exception {
+  private void login(String email, String password) throws Exception {
     LoginRequest request = new LoginRequest(email, password);
 
-    MvcResult result = mockMvc.perform(post("/api/auth/login")
+    mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isOk())
-        .andReturn();
-
-    Cookie[] cookies = result.getResponse().getCookies();
-    assertThat(cookies).isNotNull();
-    for (Cookie cookie : cookies) {
-      if ("JSESSIONID".equals(cookie.getName())) {
-        return cookie.getName() + "=" + cookie.getValue();
-      }
-    }
-    throw new IllegalStateException("JSESSIONID cookie not found");
+            .content(objectMapper.writeValueAsString(request))
+            .session(session))
+        .andExpect(status().isOk());
   }
 
   @Test
@@ -182,10 +177,10 @@ class AuthControllerIT {
 
   @Test
   void shouldReturnCurrentUserWithValidSession() throws Exception {
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     mockMvc.perform(get("/api/auth/me")
-            .header("Cookie", sessionCookie))
+            .session(session))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(userId.toString()))
         .andExpect(jsonPath("$.email").value("test@example.com"))
@@ -202,21 +197,21 @@ class AuthControllerIT {
   @Test
   void shouldRejectMeWithInvalidSession() throws Exception {
     mockMvc.perform(get("/api/auth/me")
-            .header("Cookie", "JSESSIONID=invalid-session-id"))
+            .session(new MockHttpSession()))
         .andExpect(status().isUnauthorized());
   }
 
   @Test
   void shouldLogoutSuccessfully() throws Exception {
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     mockMvc.perform(post("/api/auth/logout")
-            .header("Cookie", sessionCookie))
+            .session(session))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.message").value("User logged out successfully."));
 
     mockMvc.perform(get("/api/auth/me")
-            .header("Cookie", sessionCookie))
+            .session(session))
         .andExpect(status().isUnauthorized());
   }
 

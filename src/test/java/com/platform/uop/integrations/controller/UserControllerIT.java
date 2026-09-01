@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,11 +39,13 @@ import com.platform.uop.users.enums.UserRole;
 import com.platform.uop.users.enums.UserStatus;
 import com.platform.uop.users.repository.UserRepository;
 
-import jakarta.servlet.http.Cookie;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.web.servlet.MvcResult;
 
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class UserControllerIT {
 
   @Container
@@ -72,11 +75,12 @@ class UserControllerIT {
   private PasswordEncoder passwordEncoder;
 
   private UUID userId;
-  private String sessionCookie;
+  private MockHttpSession session;
 
   @BeforeEach
   void setUp() {
     userRepository.deleteAll();
+    session = new MockHttpSession();
 
     User user = User.builder()
         .id(UUID.randomUUID())
@@ -92,23 +96,14 @@ class UserControllerIT {
     userId = saved.getId();
   }
 
-  private String loginAndGetSessionCookie(String email, String password) throws Exception {
+  private void login(String email, String password) throws Exception {
     LoginRequest request = new LoginRequest(email, password);
 
-    MvcResult result = mockMvc.perform(post("/api/auth/login")
+    mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isOk())
-        .andReturn();
-
-    Cookie[] cookies = result.getResponse().getCookies();
-    assertThat(cookies).isNotNull();
-    for (Cookie cookie : cookies) {
-      if ("JSESSIONID".equals(cookie.getName())) {
-        return cookie.getName() + "=" + cookie.getValue();
-      }
-    }
-    throw new IllegalStateException("JSESSIONID cookie not found");
+            .content(objectMapper.writeValueAsString(request))
+            .session(session))
+        .andExpect(status().isOk());
   }
 
   @Test
@@ -159,12 +154,12 @@ class UserControllerIT {
 
   @Test
   void shouldUpdateEmailSuccessfully() throws Exception {
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     UpdateEmailRequest request = new UpdateEmailRequest("updated@example.com");
 
     mockMvc.perform(patch("/api/users/{id}/email", userId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -185,12 +180,12 @@ class UserControllerIT {
         .build();
     userRepository.save(otherUser);
 
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     UpdateEmailRequest request = new UpdateEmailRequest("other@example.com");
 
     mockMvc.perform(patch("/api/users/{id}/email", userId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isConflict())
@@ -210,12 +205,12 @@ class UserControllerIT {
         .build();
     UUID otherUserId = userRepository.save(otherUser).getId();
 
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     UpdateEmailRequest request = new UpdateEmailRequest("new@example.com");
 
     mockMvc.perform(patch("/api/users/{id}/email", otherUserId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden());
@@ -223,32 +218,33 @@ class UserControllerIT {
 
   @Test
   void shouldUpdatePasswordSuccessfully() throws Exception {
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
-    UpdatePasswordRequest request = new UpdatePasswordRequest("password123", "newPassword456");
+    UpdatePasswordRequest request = new UpdatePasswordRequest("newPassword456", "password123");
 
     mockMvc.perform(patch("/api/users/{id}/password", userId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(userId.toString()));
 
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "newPassword456");
+    session = new MockHttpSession();
+    login("test@example.com", "newPassword456");
 
     mockMvc.perform(get("/api/auth/me")
-            .header("Cookie", sessionCookie))
+            .session(session))
         .andExpect(status().isOk());
   }
 
   @Test
   void shouldRejectUpdatePasswordWithWrongOldPassword() throws Exception {
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     UpdatePasswordRequest request = new UpdatePasswordRequest("wrongpassword", "newPassword456");
 
     mockMvc.perform(patch("/api/users/{id}/password", userId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isUnauthorized());
@@ -267,12 +263,12 @@ class UserControllerIT {
         .build();
     UUID otherUserId = userRepository.save(otherUser).getId();
 
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     UpdatePasswordRequest request = new UpdatePasswordRequest("password123", "newPassword456");
 
     mockMvc.perform(patch("/api/users/{id}/password", otherUserId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden());
@@ -280,12 +276,12 @@ class UserControllerIT {
 
   @Test
   void shouldDeactivateAccountSuccessfully() throws Exception {
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     DeactivateAccountRequest request = new DeactivateAccountRequest();
 
     mockMvc.perform(patch("/api/users/{id}/deactivate", userId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -293,7 +289,7 @@ class UserControllerIT {
         .andExpect(jsonPath("$.email").value("deleted_" + userId + "@deleted.local"));
 
     mockMvc.perform(get("/api/auth/me")
-            .header("Cookie", sessionCookie))
+            .session(session))
         .andExpect(status().isUnauthorized());
   }
 
@@ -310,12 +306,12 @@ class UserControllerIT {
         .build();
     UUID otherUserId = userRepository.save(otherUser).getId();
 
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     DeactivateAccountRequest request = new DeactivateAccountRequest();
 
     mockMvc.perform(patch("/api/users/{id}/deactivate", otherUserId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden());
@@ -345,12 +341,12 @@ class UserControllerIT {
 
   @Test
   void shouldRejectUpdateEmailWithInvalidFormat() throws Exception {
-    sessionCookie = loginAndGetSessionCookie("test@example.com", "password123");
+    login("test@example.com", "password123");
 
     UpdateEmailRequest request = new UpdateEmailRequest("invalid-email");
 
     mockMvc.perform(patch("/api/users/{id}/email", userId)
-            .header("Cookie", sessionCookie)
+            .session(session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());

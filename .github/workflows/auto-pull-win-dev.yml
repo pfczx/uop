@@ -15,6 +15,12 @@ jobs:
           cd C:\uop
           git pull
 
+      - name: Run tests
+        shell: powershell
+        run: |
+          cd C:\uop
+          .\mvnw.cmd clean verify
+
       - name: Rebuild and restart containers
         shell: powershell
         run: |

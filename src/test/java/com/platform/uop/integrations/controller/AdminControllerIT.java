@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,11 +39,13 @@ import com.platform.uop.users.enums.UserRole;
 import com.platform.uop.users.enums.UserStatus;
 import com.platform.uop.users.repository.UserRepository;
 
-import jakarta.servlet.http.Cookie;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.web.servlet.MvcResult;
 
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class AdminControllerIT {
 
   @Container
@@ -74,12 +77,14 @@ class AdminControllerIT {
   private UUID adminId;
   private UUID userId;
   private UUID anotherUserId;
-  private String adminSessionCookie;
-  private String userSessionCookie;
+  private MockHttpSession adminSession;
+  private MockHttpSession userSession;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
     userRepository.deleteAll();
+    adminSession = new MockHttpSession();
+    userSession = new MockHttpSession();
 
     User admin = User.builder()
         .id(UUID.randomUUID())
@@ -113,37 +118,25 @@ class AdminControllerIT {
         .updatedAt(Instant.now())
         .build();
     anotherUserId = userRepository.save(anotherUser).getId();
+
+    login("admin@example.com", "adminpass", adminSession);
+    login("user@example.com", "userpass", userSession);
   }
 
-  private String loginAndGetSessionCookie(String email, String password) throws Exception {
+  private void login(String email, String password, MockHttpSession session) throws Exception {
     LoginRequest request = new LoginRequest(email, password);
 
-    MvcResult result = mockMvc.perform(post("/api/auth/login")
+    mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isOk())
-        .andReturn();
-
-    Cookie[] cookies = result.getResponse().getCookies();
-    assertThat(cookies).isNotNull();
-    for (Cookie cookie : cookies) {
-      if ("JSESSIONID".equals(cookie.getName())) {
-        return cookie.getName() + "=" + cookie.getValue();
-      }
-    }
-    throw new IllegalStateException("JSESSIONID cookie not found");
-  }
-
-  @BeforeEach
-  void loginUsers() throws Exception {
-    adminSessionCookie = loginAndGetSessionCookie("admin@example.com", "adminpass");
-    userSessionCookie = loginAndGetSessionCookie("user@example.com", "userpass");
+            .content(objectMapper.writeValueAsString(request))
+            .session(session))
+        .andExpect(status().isOk());
   }
 
   @Test
   void shouldGetUserAsAdmin() throws Exception {
     mockMvc.perform(get("/api/admin/users/{id}", userId)
-            .header("Cookie", adminSessionCookie))
+            .session(adminSession))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(userId.toString()))
         .andExpect(jsonPath("$.email").value("user@example.com"))
@@ -156,7 +149,7 @@ class AdminControllerIT {
   @Test
   void shouldRejectGetUserAsRegularUser() throws Exception {
     mockMvc.perform(get("/api/admin/users/{id}", userId)
-            .header("Cookie", userSessionCookie))
+            .session(userSession))
         .andExpect(status().isForbidden());
   }
 
@@ -169,7 +162,7 @@ class AdminControllerIT {
   @Test
   void shouldGetAllUsersWithPagination() throws Exception {
     mockMvc.perform(get("/api/admin/users")
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .param("page", "0")
             .param("size", "10"))
         .andExpect(status().isOk())
@@ -188,7 +181,7 @@ class AdminControllerIT {
     LockUserRequest request = new LockUserRequest();
 
     mockMvc.perform(patch("/api/admin/users/{id}/lock", userId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -196,7 +189,7 @@ class AdminControllerIT {
         .andExpect(jsonPath("$.status").value("LOCKED"));
 
     mockMvc.perform(get("/api/admin/users/{id}", userId)
-            .header("Cookie", adminSessionCookie))
+            .session(adminSession))
         .andExpect(jsonPath("$.status").value("LOCKED"));
   }
 
@@ -216,7 +209,7 @@ class AdminControllerIT {
     LockUserRequest request = new LockUserRequest();
 
     mockMvc.perform(patch("/api/admin/users/{id}/lock", lockedUserId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isConflict())
@@ -228,7 +221,7 @@ class AdminControllerIT {
     LockUserRequest request = new LockUserRequest();
 
     mockMvc.perform(patch("/api/admin/users/{id}/lock", adminId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden())
@@ -251,7 +244,7 @@ class AdminControllerIT {
     UnlockUserRequest request = new UnlockUserRequest();
 
     mockMvc.perform(patch("/api/admin/users/{id}/unlock", lockedUserId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -264,7 +257,7 @@ class AdminControllerIT {
     UnlockUserRequest request = new UnlockUserRequest();
 
     mockMvc.perform(patch("/api/admin/users/{id}/unlock", userId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isConflict())
@@ -287,7 +280,7 @@ class AdminControllerIT {
     UnlockUserRequest request = new UnlockUserRequest();
 
     mockMvc.perform(patch("/api/admin/users/{id}/unlock", lockedAdminId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden())
@@ -299,7 +292,7 @@ class AdminControllerIT {
     ChangeRoleRequest request = new ChangeRoleRequest(UserRole.ADMIN);
 
     mockMvc.perform(patch("/api/admin/users/{id}/role", userId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -312,7 +305,7 @@ class AdminControllerIT {
     ChangeRoleRequest request = new ChangeRoleRequest(UserRole.USER);
 
     mockMvc.perform(patch("/api/admin/users/{id}/role", adminId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden())
@@ -324,13 +317,13 @@ class AdminControllerIT {
     DeactivateAccountRequest request = new DeactivateAccountRequest();
 
     mockMvc.perform(delete("/api/admin/users/{id}", userId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isNoContent());
 
     mockMvc.perform(get("/api/admin/users/{id}", userId)
-            .header("Cookie", adminSessionCookie))
+            .session(adminSession))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("INACTIVE"))
         .andExpect(jsonPath("$.email").value("deleted_" + userId + "@deleted.local"));
@@ -352,7 +345,7 @@ class AdminControllerIT {
     DeactivateAccountRequest request = new DeactivateAccountRequest();
 
     mockMvc.perform(delete("/api/admin/users/{id}", inactiveUserId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isConflict())
@@ -364,7 +357,7 @@ class AdminControllerIT {
     DeactivateAccountRequest request = new DeactivateAccountRequest();
 
     mockMvc.perform(delete("/api/admin/users/{id}", adminId)
-            .header("Cookie", adminSessionCookie)
+            .session(adminSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden())
@@ -379,25 +372,25 @@ class AdminControllerIT {
     DeactivateAccountRequest deactRequest = new DeactivateAccountRequest();
 
     mockMvc.perform(patch("/api/admin/users/{id}/lock", anotherUserId)
-            .header("Cookie", userSessionCookie)
+            .session(userSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(lockRequest)))
         .andExpect(status().isForbidden());
 
     mockMvc.perform(patch("/api/admin/users/{id}/unlock", anotherUserId)
-            .header("Cookie", userSessionCookie)
+            .session(userSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(unlockRequest)))
         .andExpect(status().isForbidden());
 
     mockMvc.perform(patch("/api/admin/users/{id}/role", anotherUserId)
-            .header("Cookie", userSessionCookie)
+            .session(userSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(roleRequest)))
         .andExpect(status().isForbidden());
 
     mockMvc.perform(delete("/api/admin/users/{id}", anotherUserId)
-            .header("Cookie", userSessionCookie)
+            .session(userSession)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(deactRequest)))
         .andExpect(status().isForbidden());
@@ -408,7 +401,7 @@ class AdminControllerIT {
     UUID nonExistentId = UUID.randomUUID();
 
     mockMvc.perform(get("/api/admin/users/{id}", nonExistentId)
-            .header("Cookie", adminSessionCookie))
+            .session(adminSession))
         .andExpect(status().isNotFound());
   }
 }

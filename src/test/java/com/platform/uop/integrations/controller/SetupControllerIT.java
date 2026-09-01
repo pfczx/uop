@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -20,6 +21,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import tools.jackson.databind.ObjectMapper;
 import com.platform.uop.setup.dto.CreateAdminRequest;
+import com.platform.uop.users.repository.UserRepository;
 
 @Testcontainers
 @SpringBootTest
@@ -46,6 +48,14 @@ class SetupControllerIT {
 
   @Autowired
   private ObjectMapper objectMapper;
+
+  @Autowired
+  private UserRepository userRepository;
+
+  @BeforeEach
+  void setUp() {
+    userRepository.deleteAll();
+  }
 
   @Test
   void shouldCreateAdminSuccessfully() throws Exception {

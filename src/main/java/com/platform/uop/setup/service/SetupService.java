@@ -1,6 +1,7 @@
 package com.platform.uop.setup.service;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class SetupService {
     }
 
     User user = User.builder()
+        .id(UUID.randomUUID())
         .email(request.email())
         .passwordHash(passwordEncoder.encode(request.password()))
         .role(UserRole.ADMIN)

@@ -2,6 +2,7 @@ package com.platform.uop.admin.controller;
 
 import java.util.UUID;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -63,9 +64,10 @@ public class AdminController {
   }
 
   @DeleteMapping("/{id}")
-  public void deactivateAccount(
+  public ResponseEntity<Void> deactivateAccount(
       @PathVariable UUID id,
       @Valid @RequestBody DeactivateAccountRequest request) {
     adminService.deactivateAccount(id, request);
+    return ResponseEntity.noContent().build();
   }
 }

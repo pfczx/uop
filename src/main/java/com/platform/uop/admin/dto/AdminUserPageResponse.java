@@ -6,9 +6,9 @@ public record AdminUserPageResponse(
 
     List<AdminUserResponse> content,
 
-    int pageNumber,
+    int number,
 
-    int pageSize,
+    int size,
 
     long totalElements,
 

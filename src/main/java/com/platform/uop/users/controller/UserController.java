@@ -2,6 +2,7 @@ package com.platform.uop.users.controller;
 
 import java.util.UUID;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +32,7 @@ public class UserController {
     return userService.create(request);
   }
 
+  @PreAuthorize("#id == principal.user.id")
   @PatchMapping("/{id}/email")
   public UserResponse updateEmail(
       @PathVariable UUID id,
@@ -38,6 +40,7 @@ public class UserController {
     return userService.updateEmail(id, request);
   }
 
+  @PreAuthorize("#id == principal.user.id")
   @PatchMapping("/{id}/password")
   public UserResponse updatePassword(
       @PathVariable UUID id,
@@ -45,6 +48,7 @@ public class UserController {
     return userService.updatePassword(id, request);
   }
 
+  @PreAuthorize("#id == principal.user.id")
   @PatchMapping("/{id}/deactivate")
   public UserResponse deactivateAccount(
       @PathVariable UUID id,

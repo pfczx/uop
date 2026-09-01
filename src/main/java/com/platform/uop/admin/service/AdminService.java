@@ -114,7 +114,7 @@ public class AdminService {
     return toResponse(saved);
   }
 
-  public AdminUserResponse deactivateAccount(UUID id, DeactivateAccountRequest request) {
+  public void deactivateAccount(UUID id, DeactivateAccountRequest request) {
     User user = findUser(id);
     validateNotAdmin(user);
 
@@ -123,9 +123,7 @@ public class AdminService {
     }
 
     user.deactivateAccount();
-    User saved = userRepository.save(user);
-
-    return toResponse(saved);
+    userRepository.save(user);
   }
 
 }

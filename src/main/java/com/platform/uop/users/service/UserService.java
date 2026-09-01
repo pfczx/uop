@@ -83,7 +83,7 @@ public class UserService {
       throw new BadCredentialsException("Wrong password");
     }
 
-    user.changePassword(passwordEncoder.encode(request.Newpassword()));
+    user.changePassword(passwordEncoder.encode(request.newPassword()));
     User saved = userRepository.save(user);
 
     return toResponse(saved);

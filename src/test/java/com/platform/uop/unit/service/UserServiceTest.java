@@ -128,7 +128,7 @@ class UserServiceTest {
       assertThatThrownBy(() -> userService.create(request))
           .isInstanceOf(UserAlreadyExistsException.class)
           .hasMessage(
-              "User with email 'user@example.com' already exists");
+              "User with email user@example.com already exists");
 
       verify(userRepository)
           .findByEmail("user@example.com");
@@ -256,7 +256,7 @@ class UserServiceTest {
               "taken@example.com")))
           .isInstanceOf(UserAlreadyExistsException.class)
           .hasMessage(
-              "User with email 'taken@example.com' already exists");
+              "User with email taken@example.com already exists");
 
       verify(userRepository)
           .existsByEmailAndIdNot(
