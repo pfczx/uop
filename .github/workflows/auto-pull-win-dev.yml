@@ -1,11 +1,11 @@
-name: Auto Pull & Restart Spring
+name: Auto Pull & Dev Deploy
 
 on:
   push:
     branches: [main]
 
 jobs:
-  deploy:
+  tests:
     runs-on: [self-hosted, win-dev]
 
     steps:
@@ -26,7 +26,10 @@ jobs:
             Write-Error "Tests failed"
             exit $LASTEXITCODE
           }
+  deploy:
+    runs-on: [self-hosted,win-dev]
 
+    steps:
       - name: Rebuild and restart containers
         shell: powershell
         run: |

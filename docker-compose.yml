@@ -24,7 +24,7 @@ services:
 
   backend:
     build:
-      context: .
+      context: ./uop-backend
 
     container_name: uop-backend
 

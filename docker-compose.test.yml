@@ -3,7 +3,7 @@ services:
   tests:
     image: eclipse-temurin:21-jdk
 
-    working_dir: /app
+    working_dir: /app/uop-backend
 
     volumes:
       - .:/app
