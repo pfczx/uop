@@ -26,7 +26,7 @@ jobs:
             Write-Error "Tests failed"
             exit $LASTEXITCODE
           }
-  deploy:
+  devdeploy:
     needs: tests
     runs-on: [self-hosted,win-dev]
 
