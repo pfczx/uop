@@ -3,10 +3,10 @@ services:
   tests:
     image: eclipse-temurin:21-jdk
 
-    working_dir: /app/uop-backend
+    working_dir: /app
 
     volumes:
-      - .:/app
+      - ./uop-backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
 
     environment:

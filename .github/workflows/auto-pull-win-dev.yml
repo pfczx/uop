@@ -27,6 +27,7 @@ jobs:
             exit $LASTEXITCODE
           }
   deploy:
+    needs: tests
     runs-on: [self-hosted,win-dev]
 
     steps:
