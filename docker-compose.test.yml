@@ -6,7 +6,7 @@ services:
     working_dir: /app
 
     volumes:
-      - ./uop-backend:/app
+      - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
 
     environment:
