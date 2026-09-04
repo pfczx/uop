@@ -1,0 +1,177 @@
+syntax = "proto3";
+
+package uop.monitor.v1;
+
+option java_multiple_files = true;
+option java_package = "com.platform.uop.monitor.v1";
+option java_outer_classname = "MonitorProto";
+
+// ============================================================
+// Monitor Service
+// ============================================================
+
+service MonitorService {
+
+    // Returns information about the monitor and
+    // metrics that it can produce.
+    rpc GetDescriptor(GetDescriptorRequest)
+        returns (MonitorDescriptor);
+
+    // Configures the monitor.
+    rpc Configure(ConfigureRequest)
+        returns (ConfigureResponse);
+
+    // Collects observations from the monitor.
+    rpc Collect(CollectRequest)
+        returns (CollectResponse);
+
+    // Returns the current health state of the monitor.
+    rpc Health(HealthRequest)
+        returns (HealthResponse);
+}
+
+// ============================================================
+// Descriptor
+// ============================================================
+
+message MonitorDescriptor {
+    string name = 1;
+    string description = 2;
+
+    repeated MetricDescriptor metrics = 3;
+}
+
+message MetricDescriptor {
+    string name = 1;
+    string description = 2;
+
+    ValueType value_type = 3;
+    MetricType metric_type = 4;
+
+    string unit = 5;
+}
+
+enum ValueType {
+    VALUE_TYPE_UNSPECIFIED = 0;
+
+    VALUE_TYPE_INT64 = 1;
+    VALUE_TYPE_UINT64 = 2;
+    VALUE_TYPE_DOUBLE = 3;
+    VALUE_TYPE_BOOL = 4;
+    VALUE_TYPE_STRING = 5;
+}
+
+enum MetricType {
+    METRIC_TYPE_UNSPECIFIED = 0;
+
+    METRIC_TYPE_GAUGE = 1;
+    METRIC_TYPE_COUNTER = 2;
+    METRIC_TYPE_STATE = 3;
+    METRIC_TYPE_INFO = 4;
+}
+
+// ============================================================
+// Configuration
+// ============================================================
+
+message MonitorConfiguration {
+    repeated ConfigurationEntry entries = 1;
+}
+
+message ConfigurationEntry {
+    string key = 1;
+    ConfigurationValue value = 2;
+}
+
+message ConfigurationValue {
+    oneof value {
+        string string_value = 1;
+        int64 int_value = 2;
+        uint64 uint_value = 3;
+        double double_value = 4;
+        bool bool_value = 5;
+    }
+}
+
+// ============================================================
+// Observation
+// ============================================================
+
+message Observation {
+    string metric = 1;
+
+    Value value = 2;
+
+    int64 timestamp = 3;
+
+    Context context = 4;
+}
+
+message Value {
+    oneof value {
+        int64 int_value = 1;
+        uint64 uint_value = 2;
+        double double_value = 3;
+        bool bool_value = 4;
+        string string_value = 5;
+    }
+}
+
+message Context {
+    repeated KeyValue entries = 1;
+}
+
+message KeyValue {
+    string key = 1;
+    string value = 2;
+}
+
+// ============================================================
+// GetDescriptor
+// ============================================================
+
+message GetDescriptorRequest {
+}
+
+ // ============================================================
+// Configure
+// ============================================================
+
+message ConfigureRequest {
+    MonitorConfiguration configuration = 1;
+}
+
+message ConfigureResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// ============================================================
+// Collect
+// ============================================================
+
+message CollectRequest {
+}
+
+message CollectResponse {
+    repeated Observation observations = 1;
+}
+
+// ============================================================
+// Health
+// ============================================================
+
+message HealthRequest {
+}
+
+message HealthResponse {
+    HealthStatus status = 1;
+    string message = 2;
+}
+
+enum HealthStatus {
+    HEALTH_STATUS_UNSPECIFIED = 0;
+
+    HEALTH_STATUS_HEALTHY = 1;
+    HEALTH_STATUS_UNHEALTHY = 2;
+}
