@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package uop.monitor.v1;
+
+option java_multiple_files = true;
+option java_package = "com.platform.uop.monitor.v1";
+
+message MonitorConfiguration {
+    repeated ConfigurationEntry entries = 1;
+}
+
+message ConfigurationEntry {
+    string key = 1;
+    ConfigurationValue value = 2;
+}
+
+message ConfigurationValue {
+    oneof value {
+        string string_value = 1;
+        int64 int_value = 2;
+        uint64 uint_value = 3;
+        double double_value = 4;
+        bool bool_value = 5;
+    }
+}
+
+message ConfigureRequest {
+    MonitorConfiguration configuration = 1;
+}
+
+message ConfigureResponse {
+    bool success = 1;
+    string message = 2;
+}

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package uop.monitor.v1;
+
+option java_multiple_files = true;
+option java_package = "com.platform.uop.monitor.v1";
+
+message MonitorDescriptor {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string version = 4;
+
+    repeated MetricDescriptor metrics = 5;
+}
+
+message MetricDescriptor {
+    string name = 1;
+    string description = 2;
+
+    ValueType value_type = 3;
+    MetricType metric_type = 4;
+
+    string unit = 5;
+}
+
+enum ValueType {
+    VALUE_TYPE_UNSPECIFIED = 0;
+
+    VALUE_TYPE_INT64 = 1;
+    VALUE_TYPE_UINT64 = 2;
+    VALUE_TYPE_DOUBLE = 3;
+    VALUE_TYPE_BOOL = 4;
+    VALUE_TYPE_STRING = 5;
+}
+
+enum MetricType {
+    METRIC_TYPE_UNSPECIFIED = 0;
+
+    METRIC_TYPE_GAUGE = 1;
+    METRIC_TYPE_COUNTER = 2;
+    METRIC_TYPE_STATE = 3;
+    METRIC_TYPE_INFO = 4;
+}

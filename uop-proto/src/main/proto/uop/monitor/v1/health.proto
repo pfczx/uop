@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package uop.monitor.v1;
+
+option java_multiple_files = true;
+option java_package = "com.platform.uop.monitor.v1";
+
+message HealthRequest {
+}
+
+message HealthResponse {
+    HealthStatus status = 1;
+    string message = 2;
+}
+
+enum HealthStatus {
+    HEALTH_STATUS_UNSPECIFIED = 0;
+
+    HEALTH_STATUS_HEALTHY = 1;
+    HEALTH_STATUS_UNHEALTHY = 2;
+}

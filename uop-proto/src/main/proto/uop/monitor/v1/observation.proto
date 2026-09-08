@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package uop.monitor.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.platform.uop.monitor.v1";
+
+message Observation {
+    string metric = 1;
+
+    Value value = 2;
+
+    google.protobuf.Timestamp timestamp = 3;
+
+    Context context = 4;
+}
+
+message Value {
+    oneof value {
+        int64 int_value = 1;
+        uint64 uint_value = 2;
+        double double_value = 3;
+        bool bool_value = 4;
+        string string_value = 5;
+    }
+}
+
+message Context {
+    repeated KeyValue entries = 1;
+}
+
+message KeyValue {
+    string key = 1;
+    string value = 2;
+}
+
+message ExportRequest {
+    repeated Observation observations = 1;
+}
+
+message ExportResponse {
+    bool success = 1;
+    string message = 2;
+}
