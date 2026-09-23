@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package uop.monitor.v1;
+
+import "uop/monitor/v1/descriptor.proto";
+import "uop/monitor/v1/observation.proto";
+import "uop/monitor/v1/health.proto";
+
+option java_multiple_files = true;
+option java_package = "com.platform.uop.monitor.v1";
+
+service PlatformDataCollectionService {
+    // Receives a continuous stream of observations from an agent.
+    rpc Export(stream ExportRequest)
+        returns (ExportResponse);
+}

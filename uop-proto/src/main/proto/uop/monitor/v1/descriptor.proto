@@ -1,3 +1,5 @@
+// template for creating the structure of transmitted data and monitor properties
+
 syntax = "proto3";
 
 package uop.monitor.v1;
@@ -10,8 +12,12 @@ message MonitorDescriptor {
     string name = 2;
     string description = 3;
     string version = 4;
+    bool active = 5;
 
-    repeated MetricDescriptor metrics = 5;
+    repeated MetricDescriptor metrics = 6;
+
+    repeated ConfigurationEntry entries = 7;
+
 }
 
 message MetricDescriptor {
@@ -42,3 +48,24 @@ enum MetricType {
     METRIC_TYPE_STATE = 3;
     METRIC_TYPE_INFO = 4;
 }
+
+message MonitorConfiguration {
+    repeated ConfigurationEntry entries = 1;
+}
+
+message ConfigurationEntry {
+    string key = 1;
+    ConfigurationValue value = 2;
+}
+
+message ConfigurationValue {
+    oneof value {
+        string string_value = 1;
+        int64 int_value = 2;
+        uint64 uint_value = 3;
+        double double_value = 4;
+        bool bool_value = 5;
+    }
+}
+
+

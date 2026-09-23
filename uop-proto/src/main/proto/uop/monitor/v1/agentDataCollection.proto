@@ -3,24 +3,19 @@ syntax = "proto3";
 package uop.monitor.v1;
 
 import "uop/monitor/v1/descriptor.proto";
-import "uop/monitor/v1/configuration.proto";
 import "uop/monitor/v1/observation.proto";
 import "uop/monitor/v1/health.proto";
 
 option java_multiple_files = true;
 option java_package = "com.platform.uop.monitor.v1";
 
-service MonitorService {
+service AgentService {
 
+    // Returns information about the monitor provided by this agent.
     rpc GetDescriptor(GetDescriptorRequest)
         returns (MonitorDescriptor);
 
-    rpc Configure(ConfigureRequest)
-        returns (ConfigureResponse);
-
-    rpc Export(ExportRequest)
-        returns (ExportResponse);
-
+    // Returns the current health status of the agent.
     rpc Health(HealthRequest)
         returns (HealthResponse);
 }
