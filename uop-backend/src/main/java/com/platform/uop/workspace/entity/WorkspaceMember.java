@@ -3,8 +3,6 @@ package com.platform.uop.workspace.entity;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.springframework.data.annotation.Id;
-
 import com.platform.uop.users.entity.User;
 import com.platform.uop.workspace.enums.WorkspaceRole;
 
@@ -15,6 +13,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
