@@ -7,7 +7,7 @@ import "uop/monitor/v1/observation.proto";
 import "uop/monitor/v1/health.proto";
 
 option java_multiple_files = true;
-option java_package = "com.platform.uop.monitor.v1";
+option java_package = "com.platform.uop.proto.v1";
 
 service AgentService {
 

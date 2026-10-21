@@ -5,7 +5,7 @@ syntax = "proto3";
 package uop.monitor.v1;
 
 option java_multiple_files = true;
-option java_package = "com.platform.uop.monitor.v1";
+option java_package = "com.platform.uop.proto.v1";
 
 message MonitorDescriptor {
     string id = 1;
