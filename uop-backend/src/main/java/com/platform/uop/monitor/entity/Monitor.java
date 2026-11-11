@@ -17,6 +17,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -53,6 +54,13 @@ public class Monitor {
   }
 
   public void updateDescriptor(MonitorDescriptor descriptor) {
+    Objects.requireNonNull(descriptor, "descriptor must not be null");
+
+    if (!this.descriptor.getId().equals(descriptor.getId())) {
+      throw new IllegalArgumentException(
+          "Monitor descriptor ID cannot be changed");
+    }
+
     this.descriptor = descriptor;
   }
 
@@ -62,7 +70,7 @@ public class Monitor {
         .build();
   }
 
-  public void setInActive() {
+  public void setInactive() {
     this.descriptor = descriptor.toBuilder()
         .setActive(false)
         .build();

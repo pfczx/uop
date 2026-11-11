@@ -18,6 +18,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.hibernate.action.internal.OrphanRemovalAction;
+
+import com.platform.uop.monitor.entity.Monitor;
+
 @Entity
 @Table(name = "workspaces")
 @Getter
@@ -40,11 +44,11 @@ public class Workspace {
   @Column(nullable = false)
   private Instant updatedAt;
 
-  @OneToMany
-  (mappedBy = "workspace", 
-  cascade = CascadeType.ALL, 
-  orphanRemoval = true)
+  @OneToMany(mappedBy = "workspace", cascade = CascadeType.ALL, orphanRemoval = true)
   private Set<WorkspaceMember> members = new HashSet<>();
+
+  @OneToMany(mappedBy = "workspace", cascade = CascadeType.ALL, orphanRemoval = true)
+  private Set<Monitor> monitor = new HashSet<>();
 
   public Workspace(String name, String description) {
     this.name = name;

@@ -101,6 +101,7 @@ public class WorkspaceService {
         .stream()
         .map(WorkspaceMemberResponse::from)
         .toList();
+
   }
 
   public WorkspaceMemberResponse addMember(AddWorkspaceMemberRequest request, UUID id) {

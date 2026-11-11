@@ -15,18 +15,23 @@ public class WorkspaceSecurity {
 
   private final WorkspaceMemberRepository workspaceMemberRepository;
 
-  public boolean isMember(UUID workspaceId, Authentication authentication) {
-    UUID userId = getUserId(authentication);
-
-    return userId != null
-        && workspaceMemberRepository.existsByWorkspaceIdAndUserId(
-            workspaceId, userId);
-  }
-
   public boolean canManageMembers(
       UUID workspaceId,
       Authentication authentication) {
     UUID userId = getUserId(authentication);
+
+    return userId != null
+        && workspaceMemberRepository
+            .existsByWorkspaceIdAndUserIdAndRoleIn(
+                workspaceId,
+                userId,
+                List.of(WorkspaceRole.OWNER, WorkspaceRole.ADMIN));
+  }
+
+  public boolean canManageMembers(
+      UUID workspaceId,
+      UserPrincipal principal) {
+    UUID userId = principal.getUser().getId();
 
     return userId != null
         && workspaceMemberRepository
@@ -45,6 +50,37 @@ public class WorkspaceSecurity {
         && workspaceMemberRepository
             .existsByWorkspaceIdAndUserIdAndRole(
                 workspaceId, userId, WorkspaceRole.OWNER);
+  }
+
+  public boolean isOwner(
+      UUID workspaceId,
+      UserPrincipal principal) {
+    UUID userId = principal.getUser().getId();
+
+    return userId != null
+        && workspaceMemberRepository
+            .existsByWorkspaceIdAndUserIdAndRole(
+                workspaceId, userId, WorkspaceRole.OWNER);
+  }
+
+  public boolean isMember(
+      UUID workspaceId,
+      Authentication authentication) {
+    UUID userId = getUserId(authentication);
+
+    return userId != null
+        && workspaceMemberRepository.existsByWorkspaceIdAndUserId(
+            workspaceId, userId);
+  }
+
+  public boolean isMember(
+      UUID workspaceId,
+      UserPrincipal principal) {
+    UUID userId = principal.getUser().getId();
+
+    return userId != null
+        && workspaceMemberRepository.existsByWorkspaceIdAndUserId(
+            workspaceId, userId);
   }
 
   private UUID getUserId(Authentication authentication) {

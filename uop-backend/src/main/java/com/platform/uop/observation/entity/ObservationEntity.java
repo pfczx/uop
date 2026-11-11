@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,8 +48,9 @@ public class ObservationEntity {
   private Instant receivedAt;
 
   public ObservationEntity(Monitor monitor, Observation observation) {
-    this.monitor = monitor;
-    this.observation = observation;
+    this.monitor = Objects.requireNonNull(monitor, "monitor must not be null");
+    this.observation = Objects.requireNonNull(
+        observation, "observation must not be null");
     this.observedAt = extractTimestamp(observation);
   }
 

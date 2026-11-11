@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.platform.uop.admin.exception.AdminUserNotFoundException;
 import com.platform.uop.admin.exception.CannotModifyAdminException;
@@ -17,6 +18,13 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class AdminExceptionHandler {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getReason());
+        return new ResponseEntity<>(error, ex.getStatusCode());
+    }
 
     @ExceptionHandler(CannotModifyAdminException.class)
     public ResponseEntity<Map<String, String>> handleCannotModifyAdmin(CannotModifyAdminException ex) {

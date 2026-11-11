@@ -49,7 +49,7 @@ public class WorkspaceController {
   }
 
   @PutMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.isOwner(#id, authentication)")
+  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.isOwner(#id, principal)")
   public WorkspaceResponse update(
       @PathVariable UUID id,
       @Valid @RequestBody UpdateWorkspaceRequest request) {
@@ -57,14 +57,14 @@ public class WorkspaceController {
   }
 
   @DeleteMapping("/{id}")
-  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.isOwner(#id, authentication)")
+  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.isOwner(#id, principal)")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void delete(@PathVariable UUID id) {
     workspaceService.delete(id);
   }
 
   @GetMapping("/{id}/members")
-  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id,authentication)")
+  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id, principal)")
   public List<WorkspaceMemberResponse> findWorkspaceMembers(
       @PathVariable UUID id,
       @Valid @RequestBody FindWorkspaceMembersRequest request) {
@@ -72,7 +72,7 @@ public class WorkspaceController {
   }
 
   @PostMapping("/{id}/members")
-  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id, authentication)")
+  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id, principal)")
   @ResponseStatus(HttpStatus.CREATED)
   public WorkspaceMemberResponse addMember(
       @PathVariable UUID id,
@@ -81,7 +81,7 @@ public class WorkspaceController {
   }
 
   @PatchMapping("/{id}/members/role")
-  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id, authentication)")
+  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id, principal)")
   public WorkspaceMemberResponse updateMemberRole(
       @PathVariable UUID id,
       @Valid @RequestBody UpdateWorkspaceMemberRequest request) {
@@ -89,7 +89,7 @@ public class WorkspaceController {
   }
 
   @DeleteMapping("/{id}/members")
-  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id, authentication)")
+  @PreAuthorize("hasRole('ADMIN') or @workspaceSecurity.canManageMembers(#id, principal)")
   public void removeMember(
       @PathVariable UUID id,
       @Valid @RequestBody RemoveWorkspaceMemeberRequest request) {

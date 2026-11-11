@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package uop.monitor.v1;
+
+import "google/protobuf/timestamp.proto";
+import "uop/monitor/v1/descriptor.proto";
+import "uop/monitor/v1/observation.proto";
+
+option java_multiple_files = true;
+option java_package = "com.platform.uop.proto.v1";
+
+// One bidirectional connection per agent.
+// Agents initiate connections to the platform.
+service AgentService {
+    rpc Connect(stream AgentMessage)
+        returns (stream PlatformMessage);
+}
+
+// Messages sent from the agent to the platform.
+message AgentMessage {
+    oneof message {
+        // Must be the first message when registering a new agent.
+        RegistrationRequest registration = 1;
+
+        Heartbeat heartbeat = 2;
+
+        ObservationBatch observations = 3;
+
+        // Confirms that the agent applied a descriptor update.
+        DescriptorApplied descriptor_applied = 4;
+
+        AuthenticationRequest authentication = 5;
+    }
+}
+
+message RegistrationRequest {
+    // Short-lived, single-use token issued by the platform.
+    // Only used to register a new agent.
+    string registration_token = 1;
+
+    string agent_version = 2;
+}
+
+message AuthenticationRequest {
+    string credential = 1;
+}
+
+message Heartbeat {
+    google.protobuf.Timestamp timestamp = 1;
+}
+
+message ObservationBatch {
+    string batch_id = 1;
+    repeated Observation observations = 2;
+}
+
+message DescriptorApplied {
+    // Version of the descriptor successfully applied by the agent.
+    string descriptor_version = 1;
+
+    bool success = 2;
+
+    string error_message = 3;
+}
+
+// Messages sent from the platform to the agent.
+message PlatformMessage {
+    oneof message {
+        RegistrationAccepted registration_accepted = 1;
+
+        DescriptorUpdate descriptor_update = 2;
+
+        HeartbeatResponse heartbeat_response = 3;
+
+        ObservationAcknowledgement observation_acknowledgement = 4;
+    }
+}
+
+message RegistrationAccepted {
+    // Stable identifier assigned to this agent by the platform.
+    string agent_id = 1;
+
+    // Long-lived credential. Returned only during registration.
+    // The agent must store it securely.
+    string credential = 2;
+
+    // Initial configuration for this agent.
+    MonitorDescriptor monitor_descriptor = 3;
+}
+
+message DescriptorUpdate {
+    MonitorDescriptor monitor_descriptor= 1;
+}
+
+message HeartbeatResponse {
+    google.protobuf.Timestamp server_time = 1;
+}
+
+message ObservationAcknowledgement {
+    // Identifies the batch acknowledged by the platform.
+    // The agent generates the ID and reuses it for retries.
+    string batch_id = 1;
+
+    bool success = 2;
+
+    string message = 3;
+}
+
