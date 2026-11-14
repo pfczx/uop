@@ -25,9 +25,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.platform.uop.monitor.dto.CreateMonitorRequest;
 import com.platform.uop.monitor.dto.MonitorResponse;
-import com.platform.uop.monitor.dto.RemoveMonitorRequest;
-import com.platform.uop.monitor.dto.SetActiveRequest;
-import com.platform.uop.monitor.dto.SetInactiveRequest;
 import com.platform.uop.monitor.dto.UpdateMonitorRequest;
 import com.platform.uop.monitor.entity.Monitor;
 import com.platform.uop.monitor.repository.MonitorRepository;
@@ -118,7 +115,7 @@ class MonitorServiceTest {
 
       assertThat(response.id()).isEqualTo(monitorId);
       assertThat(response.workspaceId()).isEqualTo(workspaceId);
-      assertThat(response.desription()).isEqualTo("A test monitor");
+      assertThat(response.description()).isEqualTo("A test monitor");
 
       verify(workspaceRepository).findById(workspaceId);
       verify(monitorRepository).save(any(Monitor.class));
@@ -155,12 +152,13 @@ class MonitorServiceTest {
       UpdateMonitorRequest request = new UpdateMonitorRequest(updatedDescriptor);
 
       when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.of(monitor));
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.of(monitor));
 
       MonitorResponse response = monitorService.update(request, workspaceId, monitorId);
 
       assertThat(monitor.getDescriptor().getActive()).isTrue();
-      assertThat(response.desription()).isEqualTo("A test monitor");
+      assertThat(response.description()).isEqualTo("A test monitor");
       verify(monitorRepository).save(monitor);
       verify(agentConnectionService).sendDescriptor(eq(monitorId), eq(updatedDescriptor));
     }
@@ -178,11 +176,11 @@ class MonitorServiceTest {
           .isInstanceOf(ResponseStatusException.class)
           .hasMessageContaining("Workspace not found");
 
-      verify(monitorRepository, never()).findById(any());
+      verify(monitorRepository, never()).findByIdAndWorkspaceId(any(), any());
     }
 
     @Test
-    @DisplayName("Should throw NOT_FOUND when monitor does not exist")
+    @DisplayName("Should throw NOT_FOUND when monitor does not exist in workspace")
     void update_MonitorNotFound_Throws() {
       UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
@@ -190,7 +188,8 @@ class MonitorServiceTest {
       UpdateMonitorRequest request = new UpdateMonitorRequest(descriptor(true));
 
       when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.empty());
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.empty());
 
       assertThatThrownBy(() -> monitorService.update(request, workspaceId, monitorId))
           .isInstanceOf(ResponseStatusException.class)
@@ -213,7 +212,8 @@ class MonitorServiceTest {
       UpdateMonitorRequest request = new UpdateMonitorRequest(differentId);
 
       when(workspaceRepository.findById(workspaceId)).thenReturn(Optional.of(workspace));
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.of(monitor));
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.of(monitor));
 
       assertThatThrownBy(() -> monitorService.update(request, workspaceId, monitorId))
           .isInstanceOf(IllegalArgumentException.class)
@@ -231,13 +231,15 @@ class MonitorServiceTest {
     @Test
     @DisplayName("Should remove monitor and revoke credentials after commit")
     void remove_Success() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
-      Workspace workspace = workspace(UUID.randomUUID());
+      Workspace workspace = workspace(workspaceId);
       Monitor monitor = monitor(monitorId, workspace, false);
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.of(monitor));
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.of(monitor));
 
-      monitorService.remove(new RemoveMonitorRequest(), monitorId);
+      monitorService.remove(workspaceId, monitorId);
 
       verify(monitorRepository).delete(monitor);
       verify(agentConnectionService).closeMonitorConnection(monitorId);
@@ -245,13 +247,15 @@ class MonitorServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw NOT_FOUND when monitor does not exist")
+    @DisplayName("Should throw NOT_FOUND when monitor does not exist in workspace")
     void remove_MonitorNotFound_Throws() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.empty());
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> monitorService.remove(new RemoveMonitorRequest(), monitorId))
+      assertThatThrownBy(() -> monitorService.remove(workspaceId, monitorId))
           .isInstanceOf(ResponseStatusException.class)
           .hasMessageContaining("Monitor not found");
 
@@ -268,30 +272,33 @@ class MonitorServiceTest {
     @Test
     @DisplayName("Should set monitor active and synchronize descriptor")
     void setActive_Success() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
-      Workspace workspace = workspace(UUID.randomUUID());
+      Workspace workspace = workspace(workspaceId);
       Monitor monitor = monitor(monitorId, workspace, false);
       MonitorDescriptor updated = descriptor(true);
-      SetActiveRequest request = new SetActiveRequest();
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.of(monitor));
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.of(monitor));
 
-      MonitorResponse response = monitorService.setActive(request, monitorId);
+      MonitorResponse response = monitorService.setActive(workspaceId, monitorId);
 
       assertThat(monitor.getDescriptor().getActive()).isTrue();
-      assertThat(response.desription()).isEqualTo("A test monitor");
+      assertThat(response.description()).isEqualTo("A test monitor");
       verify(monitorRepository).save(monitor);
       verify(agentConnectionService).sendDescriptor(eq(monitorId), eq(updated));
     }
 
     @Test
-    @DisplayName("Should throw NOT_FOUND when monitor does not exist")
+    @DisplayName("Should throw NOT_FOUND when monitor does not exist in workspace")
     void setActive_MonitorNotFound_Throws() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.empty());
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> monitorService.setActive(new SetActiveRequest(), monitorId))
+      assertThatThrownBy(() -> monitorService.setActive(workspaceId, monitorId))
           .isInstanceOf(ResponseStatusException.class)
           .hasMessageContaining("Monitor not found");
 
@@ -306,30 +313,33 @@ class MonitorServiceTest {
     @Test
     @DisplayName("Should set monitor inactive and synchronize descriptor")
     void setInactive_Success() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
-      Workspace workspace = workspace(UUID.randomUUID());
+      Workspace workspace = workspace(workspaceId);
       Monitor monitor = monitor(monitorId, workspace, true);
       MonitorDescriptor updated = descriptor(false);
-      SetInactiveRequest request = new SetInactiveRequest();
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.of(monitor));
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.of(monitor));
 
-      MonitorResponse response = monitorService.setInactive(request, monitorId);
+      MonitorResponse response = monitorService.setInactive(workspaceId, monitorId);
 
       assertThat(monitor.getDescriptor().getActive()).isFalse();
-      assertThat(response.desription()).isEqualTo("A test monitor");
+      assertThat(response.description()).isEqualTo("A test monitor");
       verify(monitorRepository).save(monitor);
       verify(agentConnectionService).sendDescriptor(eq(monitorId), eq(updated));
     }
 
     @Test
-    @DisplayName("Should throw NOT_FOUND when monitor does not exist")
+    @DisplayName("Should throw NOT_FOUND when monitor does not exist in workspace")
     void setInactive_MonitorNotFound_Throws() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.empty());
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> monitorService.setInactive(new SetInactiveRequest(), monitorId))
+      assertThatThrownBy(() -> monitorService.setInactive(workspaceId, monitorId))
           .isInstanceOf(ResponseStatusException.class)
           .hasMessageContaining("Monitor not found");
 
@@ -344,15 +354,17 @@ class MonitorServiceTest {
     @Test
     @DisplayName("Should return installation command with registration token")
     void generateInstallationCommand_Success() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
-      Workspace workspace = workspace(UUID.randomUUID());
+      Workspace workspace = workspace(workspaceId);
       Monitor monitor = monitor(monitorId, workspace, false);
       String token = "registration-token";
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.of(monitor));
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.of(monitor));
       when(agentCredentialService.createRegistrationToken(monitorId)).thenReturn(token);
 
-      String command = monitorService.generateInstallationCommand(monitorId);
+      String command = monitorService.generateInstallationCommand(workspaceId, monitorId);
 
       assertThat(command).contains("http://localhost:8081/agent/install");
       assertThat(command).contains("http://localhost:8080");
@@ -361,13 +373,15 @@ class MonitorServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw NOT_FOUND when monitor does not exist")
+    @DisplayName("Should throw NOT_FOUND when monitor does not exist in workspace")
     void generateInstallationCommand_MonitorNotFound_Throws() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.empty());
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> monitorService.generateInstallationCommand(monitorId))
+      assertThatThrownBy(() -> monitorService.generateInstallationCommand(workspaceId, monitorId))
           .isInstanceOf(ResponseStatusException.class)
           .hasMessageContaining("Monitor not found");
 
@@ -382,26 +396,30 @@ class MonitorServiceTest {
     @Test
     @DisplayName("Should return monitor descriptor")
     void getDescriptor_Success() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
-      Workspace workspace = workspace(UUID.randomUUID());
+      Workspace workspace = workspace(workspaceId);
       Monitor monitor = monitor(monitorId, workspace, false);
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.of(monitor));
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.of(monitor));
 
-      MonitorDescriptor descriptor = monitorService.getDescriptor(monitorId);
+      MonitorDescriptor descriptor = monitorService.getDescriptor(workspaceId, monitorId);
 
       assertThat(descriptor.getId()).isEqualTo("desc-1");
       assertThat(descriptor.getName()).isEqualTo("Test Monitor");
     }
 
     @Test
-    @DisplayName("Should throw NOT_FOUND when monitor does not exist")
+    @DisplayName("Should throw NOT_FOUND when monitor does not exist in workspace")
     void getDescriptor_MonitorNotFound_Throws() {
+      UUID workspaceId = UUID.randomUUID();
       UUID monitorId = UUID.randomUUID();
 
-      when(monitorRepository.findById(monitorId)).thenReturn(Optional.empty());
+      when(monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId))
+          .thenReturn(Optional.empty());
 
-      assertThatThrownBy(() -> monitorService.getDescriptor(monitorId))
+      assertThatThrownBy(() -> monitorService.getDescriptor(workspaceId, monitorId))
           .isInstanceOf(ResponseStatusException.class)
           .hasMessageContaining("Monitor not found");
     }

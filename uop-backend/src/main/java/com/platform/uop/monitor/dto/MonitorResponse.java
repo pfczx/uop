@@ -8,9 +8,9 @@ import com.platform.uop.monitor.entity.Monitor;
 public record MonitorResponse(
     UUID id,
     UUID workspaceId,
-    String desription,
-    Instant CreatedAt,
-    Instant UpdatedAt) {
+    String description,
+    Instant createdAt,
+    Instant updatedAt) {
 
   public static MonitorResponse from(Monitor monitor) {
     return new MonitorResponse(

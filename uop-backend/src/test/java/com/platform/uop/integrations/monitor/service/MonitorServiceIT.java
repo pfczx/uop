@@ -22,9 +22,6 @@ import org.testcontainers.utility.DockerImageName;
 
 import com.platform.uop.monitor.dto.CreateMonitorRequest;
 import com.platform.uop.monitor.dto.MonitorResponse;
-import com.platform.uop.monitor.dto.RemoveMonitorRequest;
-import com.platform.uop.monitor.dto.SetActiveRequest;
-import com.platform.uop.monitor.dto.SetInactiveRequest;
 import com.platform.uop.monitor.dto.UpdateMonitorRequest;
 import com.platform.uop.monitor.entity.Monitor;
 import com.platform.uop.monitor.repository.MonitorRepository;
@@ -96,7 +93,7 @@ class MonitorServiceIT {
 
     assertThat(response.id()).isNotNull();
     assertThat(response.workspaceId()).isEqualTo(workspaceId);
-    assertThat(response.desription()).isEqualTo("A test monitor");
+    assertThat(response.description()).isEqualTo("A test monitor");
 
     assertThat(monitorRepository.findById(response.id())).isPresent();
   }
@@ -116,11 +113,12 @@ class MonitorServiceIT {
     Workspace workspace = createWorkspace();
     Monitor monitor = createMonitor(workspace, false);
     UUID monitorId = monitor.getId();
+    UUID workspaceId = workspace.getId();
 
     MonitorResponse response = monitorService.update(
-        new UpdateMonitorRequest(descriptor("desc-1", true)), workspace.getId(), monitorId);
+        new UpdateMonitorRequest(descriptor("desc-1", true)), workspaceId, monitorId);
 
-    assertThat(response.desription()).isEqualTo("A test monitor");
+    assertThat(response.description()).isEqualTo("A test monitor");
     assertThat(monitorRepository.findById(monitorId).get().getDescriptor().getActive())
         .isTrue();
   }
@@ -130,10 +128,11 @@ class MonitorServiceIT {
   void setActive_Success() {
     Workspace workspace = createWorkspace();
     Monitor monitor = createMonitor(workspace, false);
+    UUID workspaceId = workspace.getId();
 
-    MonitorResponse response = monitorService.setActive(new SetActiveRequest(), monitor.getId());
+    MonitorResponse response = monitorService.setActive(workspaceId, monitor.getId());
 
-    assertThat(response.desription()).isEqualTo("A test monitor");
+    assertThat(response.description()).isEqualTo("A test monitor");
     assertThat(monitorRepository.findById(monitor.getId()).get().getDescriptor().getActive())
         .isTrue();
   }
@@ -143,10 +142,11 @@ class MonitorServiceIT {
   void setInactive_Success() {
     Workspace workspace = createWorkspace();
     Monitor monitor = createMonitor(workspace, true);
+    UUID workspaceId = workspace.getId();
 
-    MonitorResponse response = monitorService.setInactive(new SetInactiveRequest(), monitor.getId());
+    MonitorResponse response = monitorService.setInactive(workspaceId, monitor.getId());
 
-    assertThat(response.desription()).isEqualTo("A test monitor");
+    assertThat(response.description()).isEqualTo("A test monitor");
     assertThat(monitorRepository.findById(monitor.getId()).get().getDescriptor().getActive())
         .isFalse();
   }
@@ -156,9 +156,10 @@ class MonitorServiceIT {
   void remove_Success() {
     Workspace workspace = createWorkspace();
     Monitor monitor = createMonitor(workspace, false);
+    UUID workspaceId = workspace.getId();
     UUID monitorId = monitor.getId();
 
-    monitorService.remove(new RemoveMonitorRequest(), monitorId);
+    monitorService.remove(workspaceId, monitorId);
 
     assertThat(monitorRepository.findById(monitorId)).isEmpty();
   }
@@ -168,8 +169,9 @@ class MonitorServiceIT {
   void generateInstallationCommand_Success() {
     Workspace workspace = createWorkspace();
     Monitor monitor = createMonitor(workspace, false);
+    UUID workspaceId = workspace.getId();
 
-    String command = monitorService.generateInstallationCommand(monitor.getId());
+    String command = monitorService.generateInstallationCommand(workspaceId, monitor.getId());
 
     assertThat(command).contains("http://localhost:8081/agent/install");
     assertThat(command).contains("http://localhost:8080");
@@ -181,8 +183,9 @@ class MonitorServiceIT {
   void getDescriptor_Success() {
     Workspace workspace = createWorkspace();
     Monitor monitor = createMonitor(workspace, false);
+    UUID workspaceId = workspace.getId();
 
-    MonitorDescriptor descriptor = monitorService.getDescriptor(monitor.getId());
+    MonitorDescriptor descriptor = monitorService.getDescriptor(workspaceId, monitor.getId());
 
     assertThat(descriptor.getId()).isEqualTo("desc-1");
     assertThat(descriptor.getName()).isEqualTo("Test Monitor");
@@ -192,30 +195,31 @@ class MonitorServiceIT {
   @DisplayName("Should throw NOT_FOUND for operations on missing monitor")
   void operations_MonitorNotFound_Throw() {
     Workspace workspace = createWorkspace();
+    UUID workspaceId = workspace.getId();
     UUID missing = UUID.randomUUID();
 
     assertThatThrownBy(() -> monitorService.update(
-        new UpdateMonitorRequest(descriptor("desc-1", true)), workspace.getId(), missing))
+        new UpdateMonitorRequest(descriptor("desc-1", true)), workspaceId, missing))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Monitor not found");
 
-    assertThatThrownBy(() -> monitorService.setActive(new SetActiveRequest(), missing))
+    assertThatThrownBy(() -> monitorService.setActive(workspaceId, missing))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Monitor not found");
 
-    assertThatThrownBy(() -> monitorService.setInactive(new SetInactiveRequest(), missing))
+    assertThatThrownBy(() -> monitorService.setInactive(workspaceId, missing))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Monitor not found");
 
-    assertThatThrownBy(() -> monitorService.remove(new RemoveMonitorRequest(), missing))
+    assertThatThrownBy(() -> monitorService.remove(workspaceId, missing))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Monitor not found");
 
-    assertThatThrownBy(() -> monitorService.generateInstallationCommand(missing))
+    assertThatThrownBy(() -> monitorService.generateInstallationCommand(workspaceId, missing))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Monitor not found");
 
-    assertThatThrownBy(() -> monitorService.getDescriptor(missing))
+    assertThatThrownBy(() -> monitorService.getDescriptor(workspaceId, missing))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Monitor not found");
   }
@@ -223,7 +227,10 @@ class MonitorServiceIT {
   @Test
   @DisplayName("Should throw HttpStatus NOT_FOUND for missing monitor")
   void missingMonitor_ReturnsNotFoundStatus() {
-    assertThatThrownBy(() -> monitorService.getDescriptor(UUID.randomUUID()))
+    UUID workspaceId = UUID.randomUUID();
+    UUID monitorId = UUID.randomUUID();
+
+    assertThatThrownBy(() -> monitorService.getDescriptor(workspaceId, monitorId))
         .isInstanceOf(ResponseStatusException.class)
         .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
             .isEqualTo(HttpStatus.NOT_FOUND));

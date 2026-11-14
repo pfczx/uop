@@ -47,8 +47,8 @@ public class MonitorService {
             NOT_FOUND, "Workspace not found"));
   }
 
-  private Monitor getMonitor(UUID monitorId) {
-    return monitorRepository.findById(monitorId)
+  private Monitor getMonitor(UUID workspaceId, UUID monitorId) {
+    return monitorRepository.findByIdAndWorkspaceId(monitorId, workspaceId)
         .orElseThrow(() -> new ResponseStatusException(
             NOT_FOUND, "Monitor not found"));
   }
@@ -71,7 +71,7 @@ public class MonitorService {
       UUID monitorId) {
 
     getWorkspace(workspaceId);
-    Monitor monitor = getMonitor(monitorId);
+    Monitor monitor = getMonitor(workspaceId, monitorId);
 
     monitor.updateDescriptor(request.descriptor());
     monitorRepository.save(monitor);
@@ -82,59 +82,55 @@ public class MonitorService {
     return MonitorResponse.from(monitor);
   }
 
-  public void remove(RemoveMonitorRequest request, UUID monitorId) {
-    Monitor monitor = getMonitor(monitorId);
+  public void remove(UUID workspaceId, UUID monitorId) {
+    Monitor monitor = getMonitor(workspaceId, monitorId);
 
     monitorRepository.delete(monitor);
 
     agentCredentialService.revokeAgentCredentials(monitorId);
 
-    afterCommit(() -> {
-      agentConnectionService.closeMonitorConnection(monitorId);
-    });
+    afterCommit(() -> agentConnectionService.closeMonitorConnection(monitorId));
   }
 
-  public MonitorResponse setActive(
-      SetActiveRequest request,
-      UUID monitorId) {
+  public MonitorResponse setActive(UUID workspaceId, UUID monitorId) {
+    Monitor monitor = getMonitor(workspaceId, monitorId);
 
-    Monitor monitor = getMonitor(monitorId);
     monitor.setActive();
     monitorRepository.save(monitor);
 
-    synchronizeDescriptorAfterCommit(monitor.getId(),
-        monitor.getDescriptor());
+    synchronizeDescriptorAfterCommit(
+        monitor.getId(), monitor.getDescriptor());
 
     return MonitorResponse.from(monitor);
   }
 
-  public MonitorResponse setInactive(
-      SetInactiveRequest request,
-      UUID monitorId) {
+  public MonitorResponse setInactive(UUID workspaceId, UUID monitorId) {
+    Monitor monitor = getMonitor(workspaceId, monitorId);
 
-    Monitor monitor = getMonitor(monitorId);
     monitor.setInactive();
     monitorRepository.save(monitor);
 
-    synchronizeDescriptorAfterCommit(monitor.getId(),
-        monitor.getDescriptor());
+    synchronizeDescriptorAfterCommit(
+        monitor.getId(), monitor.getDescriptor());
 
     return MonitorResponse.from(monitor);
   }
 
-  public String generateInstallationCommand(UUID monitorId) {
-    Monitor monitor = getMonitor(monitorId);
+  public String generateInstallationCommand(
+      UUID workspaceId,
+      UUID monitorId) {
+
+    Monitor monitor = getMonitor(workspaceId, monitorId);
 
     String registrationToken = agentCredentialService.createRegistrationToken(monitor.getId());
 
-    // TODO: instalation script
     return "curl -fsSL '" + installerUrl
         + "' | sh -s -- --platform '" + platformUrl
         + "' --registration-token '" + registrationToken + "'";
   }
 
-  public MonitorDescriptor getDescriptor(UUID monitorId) {
-    return getMonitor(monitorId).getDescriptor();
+  public MonitorDescriptor getDescriptor(UUID workspaceId, UUID monitorId) {
+    return getMonitor(workspaceId, monitorId).getDescriptor();
   }
 
   private void synchronizeDescriptorAfterCommit(
