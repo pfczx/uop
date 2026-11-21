@@ -36,7 +36,7 @@ message AgentMessage {
 message RegistrationRequest {
     // Short-lived, single-use token issued by the platform.
     // Only used to register a new agent.
-    string registration_token = 1;
+      string registration_token = 1;
 
     string agent_version = 2;
 }

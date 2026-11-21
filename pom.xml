@@ -22,6 +22,9 @@
     <modules>
         <module>uop-proto</module>
         <module>uop-backend</module>
+        <module>uop-agent-sdk</module>
+        <module>uop-agent-collectors</module>
+        <module>uop-agent</module>
     </modules>
 
     <properties>
