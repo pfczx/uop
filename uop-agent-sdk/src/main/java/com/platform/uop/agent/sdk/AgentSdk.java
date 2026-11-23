@@ -1,26 +1,30 @@
 package com.platform.uop.agent.sdk;
 
+import com.platform.uop.agent.sdk.Collector;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class AgentSdk implements AutoCloseable {
 
   private final AgentSession agentSession;
 
   private AgentSdk(Builder builder) {
-    CredentialStore credentialStore = new CredentialStore(
-        builder.credentialsPath != null
-            ? builder.credentialsPath
-            : defaultCredentialsPath());
+    Path credentialsPath = builder.credentialsPath != null
+        ? builder.credentialsPath
+        : Path.of(
+            System.getProperty("user.home"),
+            ".uop-agent",
+            "credentials");
+
+    CredentialStore credentialStore = new CredentialStore(credentialsPath);
 
     this.agentSession = new AgentSession(
         builder.platformHost,
         builder.platformPort,
         builder.registrationToken,
-        builder.monitorId,
-        builder.collectors,
+        List.copyOf(builder.collectors),
         credentialStore);
   }
 
@@ -42,39 +46,27 @@ public class AgentSdk implements AutoCloseable {
 
   @Override
   public void close() {
-    agentSession.close();
-  }
-
-  private static Path defaultCredentialsPath() {
-    return Path.of(
-        System.getProperty("user.home"),
-        ".uop-agent",
-        "credentials");
+    agentSession.stop();
   }
 
   public static class Builder {
 
     private String platformHost = "localhost";
     private int platformPort = 9090;
-
     private String registrationToken;
-    private String monitorId;
+    private Path credentialsPath;
 
     private final List<Collector> collectors = new ArrayList<>();
 
-    private Path credentialsPath;
+    private Builder() {
+    }
 
     public Builder platformHost(String platformHost) {
-      this.platformHost = Objects.requireNonNull(platformHost);
+      this.platformHost = platformHost;
       return this;
     }
 
     public Builder platformPort(int platformPort) {
-      if (platformPort < 1 || platformPort > 65535) {
-        throw new IllegalArgumentException(
-            "Platform port must be between 1 and 65535");
-      }
-
       this.platformPort = platformPort;
       return this;
     }
@@ -84,30 +76,40 @@ public class AgentSdk implements AutoCloseable {
       return this;
     }
 
-    public Builder monitorId(String monitorId) {
-      this.monitorId = monitorId;
+    public Builder credentialsPath(Path credentialsPath) {
+      this.credentialsPath = credentialsPath;
       return this;
     }
 
     public Builder collector(Collector collector) {
-      collectors.add(Objects.requireNonNull(collector));
+      if (collector == null) {
+        throw new IllegalArgumentException(
+            "Collector must not be null");
+      }
+
+      collectors.add(collector);
       return this;
     }
 
     public Builder collectors(List<Collector> collectors) {
-      this.collectors.addAll(Objects.requireNonNull(collectors));
-      return this;
-    }
+      if (collectors == null) {
+        throw new IllegalArgumentException(
+            "Collectors must not be null");
+      }
 
-    public Builder credentialsPath(Path credentialsPath) {
-      this.credentialsPath = Objects.requireNonNull(credentialsPath);
+      collectors.forEach(this::collector);
       return this;
     }
 
     public AgentSdk build() {
-      if (platformHost.isBlank()) {
-        throw new IllegalStateException(
+      if (platformHost == null || platformHost.isBlank()) {
+        throw new IllegalArgumentException(
             "Platform host must not be blank");
+      }
+
+      if (platformPort < 1 || platformPort > 65535) {
+        throw new IllegalArgumentException(
+            "Platform port must be between 1 and 65535");
       }
 
       return new AgentSdk(this);
