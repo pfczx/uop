@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
 import java.util.UUID;
@@ -51,7 +52,12 @@ public class AgentSession {
 
   private String agentVersion = "0.1.0";
 
-  private ScheduledExecutorService scheduler;
+  private ScheduledExecutorService senderScheduler;
+  private ScheduledFuture<?> sendObservationsTask;
+  private ScheduledFuture<?> sendHeartbeatTask;
+
+  private long reconnectDelayMs = 1000;
+  private static final long MAX_RECONNECT_DELAY_MS = 60_000;
 
   public AgentSession(
       String platformHost,
@@ -86,28 +92,30 @@ public class AgentSession {
       observationService = null;
     }
 
-    if (scheduler != null) {
-      scheduler.shutdown();
-      try {
-        if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-          scheduler.shutdownNow();
-        }
-      } catch (InterruptedException e) {
-        scheduler.shutdownNow();
-        Thread.currentThread().interrupt();
-      }
-      scheduler = null;
-    }
+    shutdownSenderScheduler();
 
     agentGrpc.disconnect();
     logger.info("AgentSession - closed");
   }
 
   public void reconnect() {
-    if (!running) return;
+    if (!running)
+      return;
 
-    logger.info("AgentSession - reconnect triggered");
+    logger.info("AgentSession - reconnect triggered, delay={}ms", reconnectDelayMs);
     agentGrpc.disconnect();
+
+    try {
+      Thread.sleep(reconnectDelayMs);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return;
+    }
+
+    reconnectDelayMs = Math.min(reconnectDelayMs * 2, MAX_RECONNECT_DELAY_MS);
+    long jitter = (long) (Math.random() * 1000);
+    reconnectDelayMs += jitter;
+
     connect();
   }
 
@@ -162,7 +170,8 @@ public class AgentSession {
   }
 
   public void sendObservations() {
-    if (!running) return;
+    if (!running)
+      return;
 
     List<ObservationBatch> toSend = new ArrayList<>(pendingBatches.values());
 
@@ -201,22 +210,15 @@ public class AgentSession {
         this.descriptor);
     this.observationService.start(collectors, this.descriptor);
 
-    this.scheduler = Executors.newScheduledThreadPool(2);
-    scheduler.scheduleWithFixedDelay(
-        this::sendObservations,
-        0,
-        1,
-        TimeUnit.SECONDS);
-    scheduler.scheduleWithFixedDelay(
-        this::sendHeartbeat,
-        0,
-        30,
-        TimeUnit.SECONDS);
+    startSenderScheduler();
+
+    reconnectDelayMs = 1000;
 
     sendDescriptorApplied(descriptor.getVersion(), true, null);
   }
 
   public void handleHeartbeatResponse(HeartbeatResponse message) {
+    logger.debug("AgentSession - Heartbeat OK");
   }
 
   public void handleDescriptorUpdate(DescriptorUpdate message) {
@@ -260,13 +262,15 @@ public class AgentSession {
   }
 
   public void handleConnectionError(Throwable cause) {
-    if (!running) return;
+    if (!running)
+      return;
     logger.warn("AgentSession - Connection error: {}", cause.getMessage());
     reconnect();
   }
 
   public void handleConnectionClosed() {
-    if (!running) return;
+    if (!running)
+      return;
     logger.info("AgentSession - Connection closed by platform");
     reconnect();
   }
@@ -283,6 +287,48 @@ public class AgentSession {
         Thread.currentThread().interrupt();
         break;
       }
+    }
+  }
+
+  private void startSenderScheduler() {
+    shutdownSenderScheduler();
+
+    this.senderScheduler = Executors.newSingleThreadScheduledExecutor(
+        r -> {
+          Thread t = new Thread(r, "agent-sender");
+          t.setDaemon(true);
+          return t;
+        });
+
+    this.sendObservationsTask = senderScheduler.scheduleWithFixedDelay(
+        this::sendObservations,
+        0, 1, TimeUnit.SECONDS);
+
+    this.sendHeartbeatTask = senderScheduler.scheduleWithFixedDelay(
+        this::sendHeartbeat,
+        0, 30, TimeUnit.SECONDS);
+  }
+
+  private void shutdownSenderScheduler() {
+    if (sendObservationsTask != null) {
+      sendObservationsTask.cancel(false);
+      sendObservationsTask = null;
+    }
+    if (sendHeartbeatTask != null) {
+      sendHeartbeatTask.cancel(false);
+      sendHeartbeatTask = null;
+    }
+    if (senderScheduler != null) {
+      senderScheduler.shutdown();
+      try {
+        if (!senderScheduler.awaitTermination(2, TimeUnit.SECONDS)) {
+          senderScheduler.shutdownNow();
+        }
+      } catch (InterruptedException e) {
+        senderScheduler.shutdownNow();
+        Thread.currentThread().interrupt();
+      }
+      senderScheduler = null;
     }
   }
 }

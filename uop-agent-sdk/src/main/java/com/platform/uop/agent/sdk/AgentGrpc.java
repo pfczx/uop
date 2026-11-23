@@ -8,11 +8,12 @@ import com.platform.uop.proto.v1.AgentServiceGrpc;
 import com.platform.uop.proto.v1.PlatformMessage;
 
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 public class AgentGrpc implements StreamObserver<PlatformMessage> {
@@ -73,10 +74,9 @@ public class AgentGrpc implements StreamObserver<PlatformMessage> {
   };
 
   public void connect() {
-    this.channel = ManagedChannelBuilder
-        .forAddress(
-            this.platformHost,
-            this.platformPort)
+    // Use NettyChannelBuilder directly with explicit socket address to bypass name resolver
+    this.channel = NettyChannelBuilder
+        .forAddress(new java.net.InetSocketAddress(platformHost, platformPort))
         .build();
     this.stub = AgentServiceGrpc.newStub(this.channel);
 
@@ -84,7 +84,7 @@ public class AgentGrpc implements StreamObserver<PlatformMessage> {
 
     this.agentSession.setOutboundObserver(outboundObserver);
 
-    logger.info("AgentGrpc - Connected");
+    logger.info("AgentGrpc - Connected to {}:{}", platformHost, platformPort);
   };
 
   public void disconnect() {

@@ -128,4 +128,6 @@ public class ObservationService {
   }
 
   public boolean isRunning() { return running; }
+  
+  public int getQueueSize() { return queue.size(); }
 }
