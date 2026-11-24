@@ -1,5 +1,6 @@
 package com.platform.uop.agent.sdk;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +21,10 @@ public class AgentGrpc implements StreamObserver<PlatformMessage> {
 
   private static final Logger logger = LoggerFactory.getLogger(AgentGrpc.class);
 
-  private final AgentSession agentSession;
+  // for tests only
+  @VisibleForTesting
+  private AgentSession agentSession;
+
   private final String platformHost;
   private final int platformPort;
 
@@ -31,9 +35,24 @@ public class AgentGrpc implements StreamObserver<PlatformMessage> {
       AgentSession agentSession,
       String platformHost,
       int platformPort) {
+    this(agentSession, platformHost, platformPort, null);
+  }
+
+  AgentGrpc(
+      AgentSession agentSession,
+      String platformHost,
+      int platformPort,
+      ManagedChannel channel) {
     this.agentSession = agentSession;
     this.platformHost = platformHost;
     this.platformPort = platformPort;
+    this.channel = channel;
+  }
+
+  // for tests only
+  @VisibleForTesting
+  void setAgentSession(AgentSession agentSession) {
+    this.agentSession = agentSession;
   }
 
   @Override
@@ -74,17 +93,19 @@ public class AgentGrpc implements StreamObserver<PlatformMessage> {
   };
 
   public void connect() {
-    // Use NettyChannelBuilder directly with explicit socket address to bypass name resolver
-    this.channel = NettyChannelBuilder
-        .forAddress(new java.net.InetSocketAddress(platformHost, platformPort))
-        .build();
+    if (channel == null) {
+      this.channel = NettyChannelBuilder
+          .forAddress(new java.net.InetSocketAddress(platformHost, platformPort))
+          .usePlaintext()
+          .build();
+    }
     this.stub = AgentServiceGrpc.newStub(this.channel);
 
     StreamObserver<AgentMessage> outboundObserver = this.stub.connect(this);
 
     this.agentSession.setOutboundObserver(outboundObserver);
 
-    logger.info("AgentGrpc - Connected to {}:{}", platformHost, platformPort);
+    logger.info("AgentGrpc - Connected to {}:{} (plaintext)", platformHost, platformPort);
   };
 
   public void disconnect() {

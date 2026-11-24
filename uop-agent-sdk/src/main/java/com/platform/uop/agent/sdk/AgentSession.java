@@ -66,10 +66,21 @@ public class AgentSession {
       List<Collector> collectors,
       CredentialStore credentialStore) {
 
+    this(platformHost, platformPort, registrationToken, collectors, credentialStore, null);
+  }
+
+  AgentSession(
+      String platformHost,
+      int platformPort,
+      String registrationToken,
+      List<Collector> collectors,
+      CredentialStore credentialStore,
+      AgentGrpc agentGrpc) {
+
     this.registrationToken = registrationToken;
     this.collectors = collectors;
     this.credentialStore = credentialStore;
-    this.agentGrpc = new AgentGrpc(this, platformHost, platformPort);
+    this.agentGrpc = agentGrpc != null ? agentGrpc : new AgentGrpc(this, platformHost, platformPort);
   }
 
   public void start() {
