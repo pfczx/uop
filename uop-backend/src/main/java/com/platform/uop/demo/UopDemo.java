@@ -17,8 +17,6 @@ import com.platform.uop.workspace.entity.WorkspaceMember;
 import com.platform.uop.workspace.enums.WorkspaceRole;
 import com.platform.uop.workspace.repository.WorkspaceMemberRepository;
 import com.platform.uop.workspace.repository.WorkspaceRepository;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,7 +33,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 public class UopDemo {
 
     private static ConfigurableApplicationContext context;
-    private static Server grpcServer;
     private static Process agentProcess;
     private static UUID monitorId;
     private static Path tempCredentialDir;
@@ -46,10 +43,10 @@ public class UopDemo {
         System.out.println("╔═══════════════════════════════════════════════════════════════╗");
         System.out.println("║                    UOP DEMO - AUTOMATED                        ║");
         System.out.println("║  Starts platform, creates monitor, runs agent, cleans up      ║");
-        System.out.println("╚══════════════════════════════════════════════════════════════╝");
+        System.out.println("╚═══════════════════════════════════════════════════════════════╝");
         System.out.println("This demo will:");
         System.out.println("  1. Start PostgreSQL database");
-        System.out.println("  2. Start Spring Boot + gRPC server (plaintext)");
+        System.out.println("  2. Start Spring Boot + gRPC server (plaintext) - auto-started by platform");
         System.out.println("  3. Create demo data (users, workspace, monitor)");
         System.out.println("  4. Start real agent (DiskCollector) collecting metrics");
         System.out.println("  5. Stream agent logs showing registration, heartbeats, metrics");
@@ -67,7 +64,6 @@ public class UopDemo {
             log("[DEMO] Temporary credential directory: " + tempCredentialDir);
 
             startSpring(database);
-            startGrpcServer();
 
             // Auto-initialize demo data
             initializeDemoData();
@@ -134,17 +130,7 @@ public class UopDemo {
 
         logPlatform("Spring Boot application started");
         logPlatform("Flyway migrations applied");
-    }
-
-    private static void startGrpcServer() throws Exception {
-        var agentGrpcService = context.getBean(com.platform.uop.monitor.service.AgentGrpcService.class);
-
-        grpcServer = ServerBuilder.forPort(9090)
-            .addService(agentGrpcService)
-            .build()
-            .start();
-
-        logPlatform("gRPC server started on port 9090 (plaintext)");
+        logPlatform("gRPC server auto-started on port 9090 (via GrpcServerConfig)");
     }
 
     private static void initializeDemoData() {
@@ -317,17 +303,7 @@ public class UopDemo {
             logDemo("Agent stopped");
         }
 
-        if (grpcServer != null) {
-            grpcServer.shutdown();
-            try {
-                if (!grpcServer.awaitTermination(3, TimeUnit.SECONDS)) {
-                    grpcServer.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                grpcServer.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
+        // gRPC server is managed by Spring Boot lifecycle (GrpcServerConfig)
 
         if (context != null) {
             context.close();
