@@ -107,14 +107,34 @@ jobs:
               done
       - name: Compile modules (no tests)
         run: ./mvnw -T 1C -B verify -DskipTests
-      - name: Generate combined coverage report (all modules)
-        # report-aggregate bound to verify runs first in the reactor (before any
-        # exec data exists), so invoke it explicitly now that all exec is staged.
-        run: ./mvnw -B org.jacoco:jacoco-maven-plugin:0.8.12:report-aggregate
-      - name: Upload combined coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-combined-report
-          path: '**/target/site/jacoco-aggregate/**'
-          if-no-files-found: warn
+      - name: Merge exec files and generate combined coverage (printed to log)
+        run: |
+          set -e
+          curl -sSL -o /tmp/jacoco.zip \
+            https://repo1.maven.org/maven2/org/jacoco/jacoco/0.8.12/jacoco-0.8.12.zip
+          unzip -q /tmp/jacoco.zip -d /tmp/jacoco
+          CLI=/tmp/jacoco/lib/jacoco-cli.jar
+
+          EXEC_FILES=$(find . -name jacoco.exec -not -path './jacoco-exec/*')
+          CLASS_DIRS=$(find . -type d -path '*/target/classes')
+
+          java -jar "$CLI" merge $EXEC_FILES --destfile /tmp/jacoco-merged.exec
+
+          CLASS_ARGS=""
+          for d in $CLASS_DIRS; do CLASS_ARGS="$CLASS_ARGS --classfiles $d"; done
+          java -jar "$CLI" report /tmp/jacoco-merged.exec $CLASS_ARGS \
+            --xml target/jacoco-combined.xml
+
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse('target/jacoco-combined.xml').getroot()
+          name = root.get('name', 'combined')
+          print(f"\n===== Combined JaCoCo Coverage: {name} =====")
+          for c in root.findall('counter'):
+              t = c.get('type'); missed = int(c.get('missed')); covered = int(c.get('covered'))
+              total = missed + covered
+              pct = (covered / total * 100) if total else 0.0
+              print(f"{t:<10}: {pct:6.2f}% ({covered}/{total})")
+          print("=======================================\n")
+          PY
 
