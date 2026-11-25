@@ -97,4 +97,10 @@ jobs:
           echo "Staged exec files:"; find . -name jacoco.exec -not -path './jacoco-exec/*'
       - name: Generate combined coverage report
         run: ./mvnw -T 1C -B verify -DskipTests
+      - name: Upload combined coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-combined-report
+          path: '**/target/site/jacoco-aggregate/**'
+          if-no-files-found: warn
 
