@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same branch/PR to save runners.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Test shards. Each runs on a fresh VM with its own Testcontainers Postgres,
+  # so the shards are fully isolated and run in parallel. No -Dtest filters are
+  # used, so newly added tests in these modules are picked up automatically.
+  test-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Build & test uop-agent-sdk
+        run: ./mvnw -T 1C -B -pl uop-agent-sdk -am verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-sdk
+          path: "**/target/jacoco.exec"
+          if-no-files-found: ignore
+
+  test-collectors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Build & test uop-agent-collectors
+        run: ./mvnw -T 1C -B -pl uop-agent-collectors -am verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-collectors
+          path: "**/target/jacoco.exec"
+          if-no-files-found: ignore
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Build & test uop-backend
+        run: ./mvnw -T 1C -B -pl uop-backend -am verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-backend
+          path: "**/target/jacoco.exec"
+          if-no-files-found: ignore
+
+  # Combined coverage. Downloads every shard's jacoco.exec into the matching single combined coverage summary is printed in the log.
+  coverage:
+    needs: [test-sdk, test-collectors, test-backend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/download-artifact@v4
+        with:
+          path: jacoco-exec
+      - name: Stage jacoco.exec files into module target dirs
+        run: |
+          find jacoco-exec -name 'jacoco.exec' -print0 \
+            | while IFS= read -r -d '' f; do
+                # Place each exec next to the module that produced it.
+                module=$(echo "$f" | sed -E 's#jacoco-exec/[^/]+/(uop-[^/]+)/.*#\1#')
+                if [ -d "$module" ]; then
+                  mkdir -p "$module/target"
+                  cp "$f" "$module/target/jacoco.exec"
+                fi
+              done
+          echo "Staged exec files:"; find . -name jacoco.exec -not -path './jacoco-exec/*'
+      - name: Generate combined coverage report
+        run: ./mvnw -T 1C -B verify -DskipTests
+
