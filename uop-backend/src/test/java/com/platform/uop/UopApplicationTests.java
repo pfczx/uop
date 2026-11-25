@@ -1,5 +1,6 @@
 package com.platform.uop;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -12,6 +13,7 @@ import com.platform.uop.IntegrationTest;
  */
 @IntegrationTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Tag("e2e")
 class UopApplicationTests extends AbstractPostgresIntegrationTest {
 
     @Test

@@ -1,5 +1,6 @@
 package com.platform.uop.integrations.e2e;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
@@ -19,6 +20,7 @@ import com.platform.uop.IntegrationTest;
 @IntegrationTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@Tag("e2e")
 class RealAgentRegistersE2ETest extends AbstractRealAgentE2E {
 
     @Container

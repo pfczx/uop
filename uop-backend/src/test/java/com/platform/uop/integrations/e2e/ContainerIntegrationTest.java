@@ -28,6 +28,7 @@ import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -56,6 +57,7 @@ import com.platform.uop.IntegrationTest;
 @IntegrationTest
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Tag("e2e")
 class ContainerIntegrationTest {
 
     @Container
