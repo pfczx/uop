@@ -15,6 +15,13 @@
 
     <artifactId>uop-backend</artifactId>
 
+    <properties>
+        <!-- RestAssured 5.5.0 supports Groovy [4.0,5.0); Spring Boot 4.1.0 manages
+             Groovy 5.0.x which breaks RestAssured's HTTP GET path (NPE in
+             RequestSpecificationImpl). Pin to the supported 4.0.x line. -->
+        <groovy.version>4.0.22</groovy.version>
+    </properties>
+
     <dependencies>
 
         <dependency>
@@ -234,6 +241,20 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.6</version>
+                <configuration>
+                    <!-- Fork a fresh JVM per test class so the heavy real-agent E2E
+                         tests (each starts its own Spring context + Testcontainers
+                         Postgres + real gRPC + SDK threads) do not get starved by
+                         contexts accumulated from earlier classes in a shared JVM. -->
+                    <forkCount>1</forkCount>
+                    <reuseForks>false</reuseForks>
+                </configuration>
             </plugin>
 
             <plugin>

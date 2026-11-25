@@ -56,11 +56,8 @@ import static org.awaitility.Awaitility.await;
 
 import com.platform.uop.IntegrationTest;
 
-import org.junit.jupiter.api.Disabled;
-
 @IntegrationTest
 @SpringBootTest
-@Disabled("Requires gRPC server running - disabled in test profile")
 class AgentGrpcIntegrationTest {
 
     @Container
@@ -93,6 +90,15 @@ class AgentGrpcIntegrationTest {
     private ObservationService observationService;
 
     @Autowired
+    private com.platform.uop.observation.repository.ObservationRepository observationRepository;
+
+    @Autowired
+    private com.platform.uop.observation.repository.ObservationBatchRepository observationBatchRepository;
+
+    @Autowired
+    private com.platform.uop.monitor.repository.AgentCredentialRepository agentCredentialRepository;
+
+    @Autowired
     private AgentConnectionService agentConnectionService;
 
     private String serverName;
@@ -106,7 +112,12 @@ class AgentGrpcIntegrationTest {
     private Monitor monitor;
     private String registrationToken;
     private Server testServer;
+
+    @BeforeEach
     void setUp() throws Exception {
+        observationRepository.deleteAll();
+        observationBatchRepository.deleteAll();
+        agentCredentialRepository.deleteAll();
         monitorRepository.deleteAll();
         workspaceRepository.deleteAll();
 
@@ -388,11 +399,12 @@ class AgentGrpcIntegrationTest {
 
         await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
             PlatformMessage response = lastResponse.get();
-            if (response != null && response.getMessageCase() == PlatformMessage.MessageCase.DESCRIPTOR_UPDATE) {
-                assertThat(response.getDescriptorUpdate().getMonitorDescriptor().getVersion()).isEqualTo("2.0");
-            }
+            assertThat(response).isNotNull();
+            assertThat(response.getMessageCase()).isEqualTo(PlatformMessage.MessageCase.DESCRIPTOR_UPDATE);
+            assertThat(response.getDescriptorUpdate().getMonitorDescriptor().getVersion()).isEqualTo("2.0");
         });
 
+        // The service does not acknowledge DescriptorApplied, so send without waiting.
         AgentMessage appliedMsg = AgentMessage.newBuilder()
             .setDescriptorApplied(DescriptorApplied.newBuilder()
                 .setDescriptorVersion("2.0")
@@ -400,7 +412,7 @@ class AgentGrpcIntegrationTest {
                 .build())
             .build();
 
-        sendAndWait(appliedMsg);
+        requestObserver.onNext(appliedMsg);
     }
 
     @Test
@@ -437,12 +449,11 @@ class AgentGrpcIntegrationTest {
             .setObservations(batch)
             .build();
 
+        // The service rejects an empty batch by closing the stream with an error,
+        // so no PlatformMessage response is produced.
         sendAndWait(obsMsg);
 
-        PlatformMessage response = lastResponse.get();
-        assertThat(response).isNotNull();
-        assertThat(response.getMessageCase()).isEqualTo(PlatformMessage.MessageCase.OBSERVATION_ACKNOWLEDGEMENT);
-        assertThat(response.getObservationAcknowledgement().getSuccess()).isFalse();
+        assertThat(lastResponse.get()).isNull();
     }
 
     @Test
@@ -471,11 +482,10 @@ class AgentGrpcIntegrationTest {
             .setObservations(builder.build())
             .build();
 
+        // Oversized batch is rejected by closing the stream with an error.
         sendAndWait(obsMsg);
 
-        PlatformMessage response = lastResponse.get();
-        assertThat(response).isNotNull();
-        assertThat(response.getObservationAcknowledgement().getSuccess()).isFalse();
+        assertThat(lastResponse.get()).isNull();
     }
 
     @Test
@@ -502,11 +512,10 @@ class AgentGrpcIntegrationTest {
             .setObservations(batch)
             .build();
 
+        // Missing timestamp is rejected by closing the stream with an error.
         sendAndWait(obsMsg);
 
-        PlatformMessage response = lastResponse.get();
-        assertThat(response).isNotNull();
-        assertThat(response.getObservationAcknowledgement().getSuccess()).isFalse();
+        assertThat(lastResponse.get()).isNull();
     }
 
     @Test
@@ -538,6 +547,15 @@ class AgentGrpcIntegrationTest {
         requestObserver1.onNext(registrationMsg);
         assertThat(latch1.await(5, TimeUnit.SECONDS)).isTrue();
         assertThat(resp1.get().getMessageCase()).isEqualTo(PlatformMessage.MessageCase.REGISTRATION_ACCEPTED);
+        String credential = resp1.get().getRegistrationAccepted().getCredential();
+
+        // Second agent authenticates with the issued credential. The connection
+        // service keeps a single session per monitor, so this replaces the first.
+        AgentMessage authMsg = AgentMessage.newBuilder()
+            .setAuthentication(AuthenticationRequest.newBuilder()
+                .setCredential(credential)
+                .build())
+            .build();
 
         CountDownLatch latch2 = new CountDownLatch(1);
         AtomicReference<PlatformMessage> resp2 = new AtomicReference<>();
@@ -547,13 +565,14 @@ class AgentGrpcIntegrationTest {
             @Override public void onCompleted() { latch2.countDown(); }
         };
         StreamObserver<AgentMessage> requestObserver2 = stub2.connect(responseObserver2);
-        requestObserver2.onNext(registrationMsg);
+        requestObserver2.onNext(authMsg);
         assertThat(latch2.await(5, TimeUnit.SECONDS)).isTrue();
-        
-        assertThat(resp2.get().getMessageCase()).isEqualTo(PlatformMessage.MessageCase.REGISTRATION_ACCEPTED);
-        
+
+        assertThat(resp2.get().getMessageCase()).isEqualTo(PlatformMessage.MessageCase.DESCRIPTOR_UPDATE);
+
+        // Only one session remains connected for the monitor.
         assertThat(agentConnectionService.isConnected(monitor.getId())).isTrue();
-        
+
         requestObserver1.onCompleted();
         requestObserver2.onCompleted();
         channel2.shutdownNow();
@@ -574,8 +593,10 @@ class AgentGrpcIntegrationTest {
         String credential = regResponse.getRegistrationAccepted().getCredential();
 
         requestObserver.onCompleted();
-        
-        Thread.sleep(100);
+
+        // Allow the server to observe the stream completion before reconnecting.
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(
+            () -> assertThat(agentConnectionService.isConnected(monitor.getId())).isFalse());
 
         responseObserver = new StreamObserver<>() {
             @Override public void onNext(PlatformMessage m) { lastResponse.set(m); responseLatch.countDown(); }

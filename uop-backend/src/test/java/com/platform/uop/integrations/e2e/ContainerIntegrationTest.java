@@ -1,11 +1,15 @@
 package com.platform.uop.integrations.e2e;
 
 import com.platform.uop.monitor.entity.Monitor;
+import com.platform.uop.monitor.repository.AgentCredentialRepository;
 import com.platform.uop.monitor.repository.MonitorRepository;
 import com.platform.uop.monitor.service.MonitorService;
 import com.platform.uop.monitor.service.AgentCredentialService;
+import com.platform.uop.observation.repository.ObservationBatchRepository;
 import com.platform.uop.observation.repository.ObservationRepository;
+import com.platform.uop.users.repository.UserRepository;
 import com.platform.uop.workspace.entity.Workspace;
+import com.platform.uop.workspace.repository.WorkspaceMemberRepository;
 import com.platform.uop.workspace.repository.WorkspaceRepository;
 import com.platform.uop.workspace.dto.AddWorkspaceMemberRequest;
 import com.platform.uop.workspace.dto.FindWorkspaceMembersRequest;
@@ -49,12 +53,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.platform.uop.IntegrationTest;
 
-import org.junit.jupiter.api.Disabled;
-
 @IntegrationTest
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Disabled("Requires isolated database per test - disabled for parallel runs")
 class ContainerIntegrationTest {
 
     @Container
@@ -89,6 +90,18 @@ class ContainerIntegrationTest {
     @Autowired
     private ObservationRepository observationRepository;
 
+    @Autowired
+    private ObservationBatchRepository observationBatchRepository;
+
+    @Autowired
+    private AgentCredentialRepository agentCredentialRepository;
+
+    @Autowired
+    private WorkspaceMemberRepository workspaceMemberRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     private String adminSessionCookie;
     private UUID workspaceId;
     private UUID monitorId;
@@ -101,6 +114,15 @@ class ContainerIntegrationTest {
     void setUp() {
         RestAssured.port = port;
         RestAssured.basePath = "/api";
+
+        // Clean database in FK-safe order so each test starts isolated.
+        observationRepository.deleteAll();
+        observationBatchRepository.deleteAll();
+        agentCredentialRepository.deleteAll();
+        monitorRepository.deleteAll();
+        workspaceMemberRepository.deleteAll();
+        workspaceRepository.deleteAll();
+        userRepository.deleteAll();
 
         adminSessionCookie = loginAsAdmin();
         
@@ -120,6 +142,7 @@ class ContainerIntegrationTest {
         // Test that the backend works with testcontainers PostgreSQL
         Response response = given()
             .header("Cookie", adminSessionCookie)
+            .contentType(ContentType.JSON)
             .when()
             .get("/workspaces/" + workspaceId)
             .then()
@@ -306,7 +329,7 @@ class ContainerIntegrationTest {
     }
 
     private String extractRegistrationToken(String installCommand) {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("--registration-token\\s+(\\S+)");
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("--registration-token\\s+['\"]?(\\S+?)['\"]?(\\s|$)");
         java.util.regex.Matcher matcher = pattern.matcher(installCommand);
         if (matcher.find()) {
             return matcher.group(1);
