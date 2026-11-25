@@ -9,15 +9,11 @@ on:
 permissions:
   contents: read
 
-# Cancel superseded runs on the same branch/PR to save runners.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Test shards. Each runs on a fresh VM with its own Testcontainers Postgres,
-  # so the shards are fully isolated and run in parallel. No -Dtest filters are
-  # used, so newly added tests in these modules are picked up automatically.
   test-sdk:
     runs-on: ubuntu-latest
     steps:
@@ -69,7 +65,6 @@ jobs:
           path: "**/target/jacoco.exec"
           if-no-files-found: ignore
 
-  # Combined coverage. Downloads every shard's jacoco.exec into the matching single combined coverage summary is printed in the log.
   coverage:
     needs: [test-sdk, test-collectors, test-backend]
     runs-on: ubuntu-latest
@@ -87,16 +82,18 @@ jobs:
         run: |
           find jacoco-exec -name 'jacoco.exec' -print0 \
             | while IFS= read -r -d '' f; do
-                # Place each exec next to the module that produced it.
                 module=$(echo "$f" | sed -E 's#jacoco-exec/[^/]+/(uop-[^/]+)/.*#\1#')
                 if [ -d "$module" ]; then
                   mkdir -p "$module/target"
                   cp "$f" "$module/target/jacoco.exec"
                 fi
               done
-          echo "Staged exec files:"; find . -name jacoco.exec -not -path './jacoco-exec/*'
-      - name: Generate combined coverage report
+      - name: Compile modules (no tests)
         run: ./mvnw -T 1C -B verify -DskipTests
+      - name: Generate combined coverage report (all modules)
+        # report-aggregate bound to verify runs first in the reactor (before any
+        # exec data exists), so invoke it explicitly now that all exec is staged.
+        run: ./mvnw -B org.jacoco:jacoco-maven-plugin:0.8.12:report-aggregate
       - name: Upload combined coverage report
         uses: actions/upload-artifact@v4
         with:
