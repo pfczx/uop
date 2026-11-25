@@ -9,35 +9,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 
 import tools.jackson.databind.ObjectMapper;
+import com.platform.uop.AbstractPostgresIntegrationTest;
 import com.platform.uop.IntegrationTest;
 import com.platform.uop.setup.dto.CreateAdminRequest;
 import com.platform.uop.users.repository.UserRepository;
 
 @IntegrationTest
 @AutoConfigureMockMvc
-class SetupControllerIT {
-
-  @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-      DockerImageName.parse("postgres:17"))
-      .withDatabaseName("uop")
-      .withUsername("postgres")
-      .withPassword("postgres");
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgres::getJdbcUrl);
-    registry.add("spring.datasource.username", postgres::getUsername);
-    registry.add("spring.datasource.password", postgres::getPassword);
-  }
+class SetupControllerIT extends AbstractPostgresIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;

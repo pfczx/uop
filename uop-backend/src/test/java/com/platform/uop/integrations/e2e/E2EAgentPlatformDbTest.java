@@ -33,12 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.Rollback;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 
 import org.awaitility.Awaitility;
 
@@ -52,25 +47,12 @@ import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 
+import com.platform.uop.AbstractPostgresIntegrationTest;
 import com.platform.uop.IntegrationTest;
 
 @IntegrationTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class E2EAgentPlatformDbTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-        DockerImageName.parse("postgres:17"))
-        .withDatabaseName("uop")
-        .withUsername("postgres")
-        .withPassword("postgres");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+class E2EAgentPlatformDbTest extends AbstractPostgresIntegrationTest {
 
     @LocalServerPort
     private int port;
@@ -90,6 +72,18 @@ class E2EAgentPlatformDbTest {
     @Autowired
     private ObservationBatchRepository observationBatchRepository;
 
+    @Autowired
+    private com.platform.uop.observation.repository.ObservationRepository observationRepository;
+
+    @Autowired
+    private com.platform.uop.monitor.repository.AgentCredentialRepository agentCredentialRepository;
+
+    @Autowired
+    private com.platform.uop.workspace.repository.WorkspaceMemberRepository workspaceMemberRepository;
+
+    @Autowired
+    private com.platform.uop.users.repository.UserRepository userRepository;
+
     private Path tempDir;
     private CredentialStore credentialStore;
     private String adminSessionCookie;
@@ -101,6 +95,15 @@ class E2EAgentPlatformDbTest {
     void setUp() throws Exception {
         RestAssured.port = port;
         RestAssured.basePath = "/api";
+
+        // Shared container/context: wipe the DB so each class starts clean.
+        observationRepository.deleteAll();
+        observationBatchRepository.deleteAll();
+        agentCredentialRepository.deleteAll();
+        monitorRepository.deleteAll();
+        workspaceMemberRepository.deleteAll();
+        workspaceRepository.deleteAll();
+        userRepository.deleteAll();
 
         tempDir = Files.createTempDirectory("e2e-test");
         Path credFile = tempDir.resolve("credentials");

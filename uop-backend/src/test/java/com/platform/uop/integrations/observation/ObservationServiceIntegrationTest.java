@@ -25,15 +25,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.util.List;
@@ -46,25 +41,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
+import com.platform.uop.AbstractPostgresIntegrationTest;
 import com.platform.uop.IntegrationTest;
 
 @IntegrationTest
 @SpringBootTest
-class ObservationServiceIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-        DockerImageName.parse("postgres:17"))
-        .withDatabaseName("uop")
-        .withUsername("postgres")
-        .withPassword("postgres");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+class ObservationServiceIntegrationTest extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private ObservationService observationService;

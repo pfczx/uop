@@ -9,12 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 
+import com.platform.uop.AbstractPostgresIntegrationTest;
 import com.platform.uop.IntegrationTest;
 import com.platform.uop.monitor.entity.Monitor;
 import com.platform.uop.monitor.repository.MonitorRepository;
@@ -23,21 +19,7 @@ import com.platform.uop.workspace.entity.Workspace;
 import com.platform.uop.workspace.repository.WorkspaceRepository;
 
 @IntegrationTest
-class MonitorRepositoryIT {
-
-  @Container
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-      DockerImageName.parse("postgres:17"))
-      .withDatabaseName("uop")
-      .withUsername("postgres")
-      .withPassword("postgres");
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgres::getJdbcUrl);
-    registry.add("spring.datasource.username", postgres::getUsername);
-    registry.add("spring.datasource.password", postgres::getPassword);
-  }
+class MonitorRepositoryIT extends AbstractPostgresIntegrationTest {
 
   @Autowired
   private MonitorRepository monitorRepository;

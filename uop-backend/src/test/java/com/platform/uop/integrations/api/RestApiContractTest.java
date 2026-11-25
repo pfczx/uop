@@ -13,42 +13,55 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.platform.uop.AbstractPostgresIntegrationTest;
 import com.platform.uop.IntegrationTest;
 
 @IntegrationTest
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class RestApiContractTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-        DockerImageName.parse("postgres:17"))
-        .withDatabaseName("uop")
-        .withUsername("postgres")
-        .withPassword("postgres");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+class RestApiContractTest extends AbstractPostgresIntegrationTest {
 
     @LocalServerPort
     private int port;
+
+    @Autowired
+    private com.platform.uop.users.repository.UserRepository userRepository;
+
+    @Autowired
+    private com.platform.uop.workspace.repository.WorkspaceRepository workspaceRepository;
+
+    @Autowired
+    private com.platform.uop.monitor.repository.MonitorRepository monitorRepository;
+
+    @Autowired
+    private com.platform.uop.monitor.repository.AgentCredentialRepository agentCredentialRepository;
+
+    @Autowired
+    private com.platform.uop.observation.repository.ObservationRepository observationRepository;
+
+    @Autowired
+    private com.platform.uop.observation.repository.ObservationBatchRepository observationBatchRepository;
+
+    @Autowired
+    private com.platform.uop.workspace.repository.WorkspaceMemberRepository workspaceMemberRepository;
 
     @BeforeEach
     void setUp() {
         RestAssured.port = port;
         RestAssured.basePath = "/api";
+
+        // /setup/admin is a one-shot operation; wipe the DB so setup can run fresh
+        // even when the container/context is shared with other test classes.
+        observationRepository.deleteAll();
+        observationBatchRepository.deleteAll();
+        agentCredentialRepository.deleteAll();
+        monitorRepository.deleteAll();
+        workspaceMemberRepository.deleteAll();
+        workspaceRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     @Test

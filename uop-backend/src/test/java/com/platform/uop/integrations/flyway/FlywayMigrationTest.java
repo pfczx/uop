@@ -5,11 +5,6 @@ import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -19,24 +14,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.platform.uop.AbstractPostgresIntegrationTest;
 import com.platform.uop.IntegrationTest;
 
 @IntegrationTest
-class FlywayMigrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
-        DockerImageName.parse("postgres:17"))
-        .withDatabaseName("uop")
-        .withUsername("postgres")
-        .withPassword("postgres");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+class FlywayMigrationTest extends AbstractPostgresIntegrationTest {
 
     @Autowired
     private DataSource dataSource;
