@@ -24,6 +24,13 @@
         </dependency>
 
         <dependency>
+            <groupId>com.platform.uop</groupId>
+            <artifactId>uop-agent-sdk</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -158,8 +165,76 @@
 
       </dependencies>
 
-    <build>
+<build>
         <plugins>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <rules>
+                        <rule>
+                            <element>BUNDLE</element>
+                            <limits>
+                                <limit>
+                                    <counter>INSTRUCTION</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.0</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                    </rules>
+                    <excludes>
+                        <exclude>**/proto/**</exclude>
+                        <exclude>**/demo/**</exclude>
+                        <exclude>**/config/**</exclude>
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/enums/**</exclude>
+                        <exclude>**/exception/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/site/jacoco-aggregate</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <output>console</output>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.0</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
 
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -207,5 +282,4 @@
 
         </plugins>
     </build>
-
 </project>

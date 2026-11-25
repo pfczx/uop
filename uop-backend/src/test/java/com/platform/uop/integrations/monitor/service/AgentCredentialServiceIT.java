@@ -10,17 +10,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.server.ResponseStatusException;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import com.platform.uop.IntegrationTest;
 import com.platform.uop.monitor.entity.Monitor;
 import com.platform.uop.monitor.repository.MonitorRepository;
 import com.platform.uop.monitor.service.AgentCredentialService;
@@ -28,9 +26,7 @@ import com.platform.uop.proto.v1.MonitorDescriptor;
 import com.platform.uop.workspace.entity.Workspace;
 import com.platform.uop.workspace.repository.WorkspaceRepository;
 
-@Testcontainers
-@SpringBootTest
-@ActiveProfiles("test")
+@IntegrationTest
 class AgentCredentialServiceIT {
 
   @Container

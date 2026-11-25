@@ -14,21 +14,19 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import tools.jackson.databind.json.JsonMapper;
+import com.platform.uop.IntegrationTest;
 import com.platform.uop.admin.dto.ChangeRoleRequest;
 import com.platform.uop.admin.dto.LockUserRequest;
 import com.platform.uop.admin.dto.UnlockUserRequest;
@@ -42,10 +40,8 @@ import com.platform.uop.users.repository.UserRepository;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MvcResult;
 
-@Testcontainers
-@SpringBootTest
+@IntegrationTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 class AdminControllerIT {
 
   @Container
