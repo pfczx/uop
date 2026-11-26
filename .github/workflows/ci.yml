@@ -144,6 +144,28 @@ jobs:
               total = missed + covered
               pct = (covered / total * 100) if total else 0.0
               print(f"{t:<12}: {pct:6.2f}% ({covered}/{total})")
+
+          # Per-class line coverage, lowest first (what's not covered).
+          # Skip packages the Maven JaCoCo config excludes (dto/config/exception/
+          # enums/demo) so the list shows real uncovered code, not noise.
+          EXCL = ('dto/', 'config/', 'exception/', 'enums/', '/demo/', 'proto/')
+          def line_pct(el):
+              for c in el.findall('counter'):
+                  if c.get('type') == 'LINE':
+                      m = int(c.get('missed')); cov = int(c.get('covered')); tot = m + cov
+                      return (cov / tot * 100) if tot else 100.0
+              return 100.0
+          rows = []
+          for pkg in root.findall('package'):
+              for cls in pkg.findall('class'):
+                  name = cls.get('name')
+                  if any(x in name for x in EXCL):
+                      continue
+                  rows.append((line_pct(cls), name))
+          rows.sort()
+          print("\n===== Lowest-covered classes (by line %, excl. DTO/config/exception/enum/demo) =====")
+          for pct, name in rows[:20]:
+              print(f"{pct:6.2f}%  {name.replace('/', '.')}")
           print("===================================\n")
           PY
 
