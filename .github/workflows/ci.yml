@@ -120,22 +120,30 @@ jobs:
           while IFS= read -r -d '' f; do EXEC_FILES+=("$f"); done \
             < <(find . -name jacoco.exec -not -path './jacoco-exec/*' -print0)
           CLASS_ARGS=()
-          while IFS= read -r -d '' d; do CLASS_ARGS+=(--classfiles "$d"); done \
-            < <(find . -type d -path '*/target/classes' -print0)
+          while IFS= read -r -d '' d; do
+            # Skip generated protobuf classes (uop-proto): 0% coverable, would
+            # drag the combined number down. Matches the Maven JaCoCo excludes.
+            case "$d" in *uop-proto*) continue;; esac
+            CLASS_ARGS+=(--classfiles "$d")
+          done < <(find . -type d -path '*/target/classes' -print0)
 
           java -jar "$CLI" merge "${EXEC_FILES[@]}" --destfile /tmp/jacoco-merged.exec
           java -jar "$CLI" report /tmp/jacoco-merged.exec "${CLASS_ARGS[@]}" \
-            --xml target/jacoco-combined.xml
+            --xml /tmp/jacoco-combined.xml
 
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
-          root = ET.parse('target/jacoco-combined.xml').getroot()
-          print(f"\n===== Combined JaCoCo Coverage: {root.get('name','combined')} =====")
-          for c in root.findall('counter'):
-              t = c.get('type'); missed = int(c.get('missed')); covered = int(c.get('covered'))
+          root = ET.parse('/tmp/jacoco-combined.xml').getroot()
+          counters = {c.get('type'): c for c in root.findall('counter')}
+          print("\n===== Combined JaCoCo Coverage =====")
+          for t in ('INSTRUCTION', 'BRANCH', 'LINE', 'METHOD', 'CLASS'):
+              c = counters.get(t)
+              if c is None:
+                  continue
+              missed = int(c.get('missed')); covered = int(c.get('covered'))
               total = missed + covered
               pct = (covered / total * 100) if total else 0.0
-              print(f"{t:<10}: {pct:6.2f}% ({covered}/{total})")
-          print("=======================================\n")
+              print(f"{t:<12}: {pct:6.2f}% ({covered}/{total})")
+          print("===================================\n")
           PY
 
