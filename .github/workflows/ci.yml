@@ -135,15 +135,24 @@ jobs:
           import xml.etree.ElementTree as ET
           root = ET.parse('/tmp/jacoco-combined.xml').getroot()
           counters = {c.get('type'): c for c in root.findall('counter')}
-          print("\n===== Combined JaCoCo Coverage =====")
-          for t in ('INSTRUCTION', 'BRANCH', 'LINE', 'METHOD', 'CLASS'):
+          def pct(t):
               c = counters.get(t)
               if c is None:
+                  return None
+              m = int(c.get('missed')); cov = int(c.get('covered')); tot = m + cov
+              return (cov / tot * 100) if tot else 0.0
+          print("\n===== Combined JaCoCo Coverage =====")
+          for t in ('INSTRUCTION', 'BRANCH', 'LINE', 'METHOD', 'CLASS'):
+              p = pct(t)
+              if p is None:
                   continue
-              missed = int(c.get('missed')); covered = int(c.get('covered'))
-              total = missed + covered
-              pct = (covered / total * 100) if total else 0.0
-              print(f"{t:<12}: {pct:6.2f}% ({covered}/{total})")
+              c = counters[t]; m = int(c.get('missed')); cov = int(c.get('covered'))
+              print(f"{t:<12}: {p:6.2f}% ({cov}/{m + cov})")
+          # jacoco-console-reporter weighted combined metric.
+          cls, meth, br, ln = pct('CLASS'), pct('METHOD'), pct('BRANCH'), pct('LINE')
+          if None not in (cls, meth, br, ln):
+              combined = cls * 0.1 + meth * 0.1 + br * 0.4 + ln * 0.4
+              print(f"\nCombined coverage: {combined:.2f}% (Class 10%, Method 10%, Branch 40%, Line 40%)")
 
           # Per-class line coverage, lowest first (what's not covered).
           # Skip packages the Maven JaCoCo config excludes (dto/config/exception/
